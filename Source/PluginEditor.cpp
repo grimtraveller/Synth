@@ -34,6 +34,14 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor (SynthAudioProcessor& owner
 	startTimer(200);//starts timer with interval of 200mS
     //[/Constructor_pre]
 
+    addAndMakeVisible (titleLabel = new Label ("titleLabel",
+                                               TRANS("Synth")));
+    titleLabel->setFont (Font (20.00f, Font::plain));
+    titleLabel->setJustificationType (Justification::centred);
+    titleLabel->setEditable (false, false, false);
+    titleLabel->setColour (TextEditor::textColourId, Colours::black);
+    titleLabel->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+
 
     //[UserPreSize]
     //[/UserPreSize]
@@ -50,6 +58,7 @@ SynthAudioProcessorEditor::~SynthAudioProcessorEditor()
     //[Destructor_pre]. You can add your own custom destruction code here..
     //[/Destructor_pre]
 
+    titleLabel = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -64,6 +73,9 @@ void SynthAudioProcessorEditor::paint (Graphics& g)
 
     g.fillAll (Colours::white);
 
+    g.setColour (Colour (0xff2aa568));
+    g.fillRect (0, 0, 600, 400);
+
     //[UserPaint] Add your own custom painting code here..
     //[/UserPaint]
 }
@@ -73,6 +85,7 @@ void SynthAudioProcessorEditor::resized()
     //[UserPreResize] Add your own custom resize code here..
     //[/UserPreResize]
 
+    titleLabel->setBounds (0, 0, 400, 24);
     //[UserResized] Add your own custom resize handling here..
     //[/UserResized]
 }
@@ -102,7 +115,14 @@ BEGIN_JUCER_METADATA
                  constructorParams="SynthAudioProcessor&amp; ownerFilter" variableInitialisers="AudioProcessorEditor(ownerFilter)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
                  fixedSize="0" initialWidth="600" initialHeight="400">
-  <BACKGROUND backgroundColour="ffffffff"/>
+  <BACKGROUND backgroundColour="ffffffff">
+    <RECT pos="0 0 600 400" fill="solid: ff2aa568" hasStroke="0"/>
+  </BACKGROUND>
+  <LABEL name="titleLabel" id="58d7aa0d307daac8" memberName="titleLabel"
+         virtualName="" explicitFocusOrder="0" pos="0 0 400 24" edTextCol="ff000000"
+         edBkgCol="0" labelText="Synth" editableSingleClick="0" editableDoubleClick="0"
+         focusDiscardsChanges="0" fontname="Default font" fontsize="20"
+         bold="0" italic="0" justification="36"/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA
