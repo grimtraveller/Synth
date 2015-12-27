@@ -12,6 +12,7 @@
 #define PLUGINPROCESSOR_H_INCLUDED
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include <string>
 
 
 //==============================================================================
@@ -37,6 +38,13 @@ public:
     //==============================================================================
     const String getName() const override;
 
+	int getNumParameters() override;
+	float getParameter(int index) override;
+	void setParameter(int index, float newValue) override;
+
+	const String getParameterName(int index) override;
+	const String getParameterText(int index) override;
+
     const String getInputChannelName (int channelIndex) const override;
     const String getOutputChannelName (int channelIndex) const override;
     bool isInputChannelStereoPair (int index) const override;
@@ -58,9 +66,39 @@ public:
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+	//Custom Methods, Params and Public Data
+	enum Parameters {
+		MasterBypass = 0,
+		waveFormParam = 1,
+		textBoxParam = 2,
+		totalNumParam
+	};
+
+	int attackMS;
+	int attackSamples;
+	float gainDelta;
+
+	float gain;
+	float currentGain;
+
 private:
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SynthAudioProcessor)
+	
+	//Private Data, helper methods etc.
+	float UserParams[totalNumParam];
+	bool UIUpdateFlag;
+
+	Synthesiser sineSynth;
+	Synthesiser triangleSynth;
+	Synthesiser squareSynth;
+	Synthesiser sawtoothSynth;
+
+	int currentSynth;
+
+	template <typename FloatType>
+	void envelope(AudioBuffer<FloatType>& buffer);
+
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };
 
 

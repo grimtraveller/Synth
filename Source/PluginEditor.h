@@ -36,7 +36,8 @@
                                                                     //[/Comments]
 */
 class SynthAudioProcessorEditor  : public AudioProcessorEditor,
-                                   public Timer
+                                   public Timer,
+                                   public ComboBoxListener
 {
 public:
     //==============================================================================
@@ -54,6 +55,7 @@ public:
 
     void paint (Graphics& g);
     void resized();
+    void comboBoxChanged (ComboBox* comboBoxThatHasChanged);
 
 
 
@@ -62,7 +64,8 @@ private:
     //[/UserVariables]
 
     //==============================================================================
-    ScopedPointer<Label> titleLabel;
+    ScopedPointer<ComboBox> waveformCombo;
+    ScopedPointer<TextEditor> textbox;
 
 
     //==============================================================================

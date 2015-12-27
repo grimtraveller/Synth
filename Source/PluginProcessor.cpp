@@ -10,21 +10,551 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <math.h>
+#include <string>
+
+class SynthSound : public SynthesiserSound {
+public:
+	SynthSound() {}
+	bool appliesToNote(int /*midiNoteNumber*/) override  { return true; }
+	bool appliesToChannel(int /*midiChannel*/) override  { return true; }
+};
+
+class SineVoice : public SynthesiserVoice {
+public:
+	SineVoice()
+		// WinkelDelta auf 0.0?
+		// TailOff = sowas wie Release-Zeit?
+		: angleDelta(0.0),
+		tailOff(0.0)
+	{}
+
+	bool canPlaySound(SynthesiserSound* sound) override {
+		//return dynamic_cast<SineSound*> (sound) != nullptr;
+		return true;
+	}
+
+	void startNote(int midiNoteNumber, float velocity,
+		SynthesiserSound* /*sound*/,
+		int /*currentPitchWheelPosition*/) override {
+
+		// entfernen verursacht Knacken:
+		currentAngle = 0.0;
+		level = velocity * 0.15;
+		tailOff = 0.0;
+		index = 0;
+
+		// Cycles per second = Frequenz in Hertz
+		// Cycle = ein Sinuswellendurchgang (= 2 x Pi)
+		// Winkelfrequenz = 2 Pi * Frequenz!
+		cyclesPerSecond = MidiMessage::getMidiNoteInHertz(midiNoteNumber);
+
+		// Cycles per sample = Frequenz / SampleRate
+		cyclesPerSample = cyclesPerSecond / getSampleRate();
+
+		period = getSampleRate() / cyclesPerSecond;
+
+		// value = 2 * Pi * index * frequency/samplerate
+		// darf nicht gelöscht werden! (warum?)
+		angleDelta = cyclesPerSample * 2.0 * double_Pi;
+	}
+
+	void stopNote(float /*velocity*/, bool allowTailOff) override {
+		clearCurrentNote();
+		angleDelta = 0.0;
+		index = 0;
+	}
+
+	void pitchWheelMoved(int /*newValue*/) override {
+		// can't be bothered implementing this for the demo!
+	}
+
+	void controllerMoved(int /*controllerNumber*/, int /*newValue*/) override {
+		// not interested in controllers in this case.
+	}
+
+	void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+	void renderNextBlock(AudioBuffer<double>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+private:
+
+	double cyclesPerSecond;
+	double cyclesPerSample;
+	float period;
+
+	template <typename FloatType>
+	void processBlock(AudioBuffer<FloatType>& outputBuffer, int startSample, int numSamples) {
+
+		// was passiert bei angleDelta == 0.0 ? (Knacken)
+		// muss abgefragt werden! (warum?)
+		if (angleDelta != 0.0) {
+
+			// für jeden Sample:
+			while (--numSamples >= 0) {
+
+				//FloatType currentSample = 0.0;
+
+				FloatType currentSample = static_cast<FloatType> (std::sin(2 * double_Pi * index * cyclesPerSecond / getSampleRate()));
+
+				// für jeden Channel:
+				for (int i = outputBuffer.getNumChannels(); --i >= 0;) {
+					// aktuellen Sample zum Buffer hinzufügen:
+					outputBuffer.addSample(i, startSample, currentSample);
+				}
+
+				// aktueller Winkel + WinkelDelta: (ein Schritt weiter im Sinus?)
+				//currentAngle += angleDelta;
+				// ein Schritt weiter im Sample?
+				++startSample;
+				index++;
+			}
+
+		}// if(angleDelta != 0.0)
+
+	}// void processsBlock()
+
+	double currentAngle, angleDelta, level, tailOff;
+	int index;
+};
+
+class TriangleVoice : public SynthesiserVoice {
+public:
+	TriangleVoice()
+		// WinkelDelta auf 0.0?
+		// TailOff = sowas wie Release-Zeit?
+		: angleDelta(0.0),
+		tailOff(0.0)
+	{}
+
+	bool canPlaySound(SynthesiserSound* sound) override {
+		//return dynamic_cast<SineSound*> (sound) != nullptr;
+		return true;
+	}
+
+	void startNote(int midiNoteNumber, float velocity,
+		SynthesiserSound* /*sound*/,
+		int /*currentPitchWheelPosition*/) override {
+
+		// entfernen verursacht Knacken:
+		currentAngle = 0.0;
+		level = velocity * 0.15;
+		tailOff = 0.0;
+		index = 0;
+
+		// Cycles per second = Frequenz in Hertz
+		// Cycle = ein Sinuswellendurchgang (= 2 x Pi)
+		// Winkelfrequenz = 2 Pi * Frequenz!
+		cyclesPerSecond = MidiMessage::getMidiNoteInHertz(midiNoteNumber);
+
+		// Cycles per sample = Frequenz / SampleRate
+		cyclesPerSample = cyclesPerSecond / getSampleRate();
+
+		period = getSampleRate() / cyclesPerSecond;
+
+		// value = 2 * Pi * index * frequency/samplerate
+		// darf nicht gelöscht werden! (warum?)
+		angleDelta = cyclesPerSample * 2.0 * double_Pi;
+	}
+
+	void stopNote(float /*velocity*/, bool allowTailOff) override {
+		clearCurrentNote();
+		angleDelta = 0.0;
+		index = 0;
+	}
+
+	void pitchWheelMoved(int /*newValue*/) override {
+		// can't be bothered implementing this for the demo!
+	}
+
+	void controllerMoved(int /*controllerNumber*/, int /*newValue*/) override {
+		// not interested in controllers in this case.
+	}
+
+	void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+	void renderNextBlock(AudioBuffer<double>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+private:
+
+	double cyclesPerSecond;
+	double cyclesPerSample;
+	float period;
+
+	template <typename FloatType>
+	void processBlock(AudioBuffer<FloatType>& outputBuffer, int startSample, int numSamples) {
+
+		// was passiert bei angleDelta == 0.0 ? (Knacken)
+		// muss abgefragt werden! (warum?)
+		if (angleDelta != 0.0) {
+
+			// für jeden Sample:
+			while (--numSamples >= 0) {
+
+				float modulo = fmod(index, period);
+
+				FloatType currentSample = static_cast<FloatType> ((modulo / period) * 4);
+
+				if (currentSample < 2){
+					currentSample = (currentSample - 1);
+				}
+				else{
+					currentSample = (1 + 2 - currentSample);
+				}
+
+				// für jeden Channel:
+				for (int i = outputBuffer.getNumChannels(); --i >= 0;) {
+					// aktuellen Sample zum Buffer hinzufügen:
+					outputBuffer.addSample(i, startSample, currentSample);
+				}
+
+				// aktueller Winkel + WinkelDelta: (ein Schritt weiter im Sinus?)
+				//currentAngle += angleDelta;
+				// ein Schritt weiter im Sample?
+				++startSample;
+				index++;
+			}
+
+		}// if(angleDelta != 0.0)
+
+	}// void processsBlock()
+
+	double currentAngle, angleDelta, level, tailOff;
+	int index;
+};
+
+class SquareVoice : public SynthesiserVoice {
+public:
+	SquareVoice()
+		// WinkelDelta auf 0.0?
+		// TailOff = sowas wie Release-Zeit?
+		: angleDelta(0.0),
+		tailOff(0.0)
+	{}
+
+	bool canPlaySound(SynthesiserSound* sound) override {
+		//return dynamic_cast<SineSound*> (sound) != nullptr;
+		return true;
+	}
+
+	void startNote(int midiNoteNumber, float velocity,
+		SynthesiserSound* /*sound*/,
+		int /*currentPitchWheelPosition*/) override {
+
+		// entfernen verursacht Knacken:
+		currentAngle = 0.0;
+		level = velocity * 0.15;
+		tailOff = 0.0;
+		index = 0;
+
+		// Cycles per second = Frequenz in Hertz
+		// Cycle = ein Sinuswellendurchgang (= 2 x Pi)
+		// Winkelfrequenz = 2 Pi * Frequenz!
+		cyclesPerSecond = MidiMessage::getMidiNoteInHertz(midiNoteNumber);
+
+		// Cycles per sample = Frequenz / SampleRate
+		cyclesPerSample = cyclesPerSecond / getSampleRate();
+
+		period = getSampleRate() / cyclesPerSecond;
+
+		// value = 2 * Pi * index * frequency/samplerate
+		// darf nicht gelöscht werden! (warum?)
+		angleDelta = cyclesPerSample * 2.0 * double_Pi;
+	}
+
+	void stopNote(float /*velocity*/, bool allowTailOff) override {
+		clearCurrentNote();
+		angleDelta = 0.0;
+		index = 0;
+	}
+
+	void pitchWheelMoved(int /*newValue*/) override {
+		// can't be bothered implementing this for the demo!
+	}
+
+	void controllerMoved(int /*controllerNumber*/, int /*newValue*/) override {
+		// not interested in controllers in this case.
+	}
+
+	void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+	void renderNextBlock(AudioBuffer<double>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+private:
+
+	double cyclesPerSecond;
+	double cyclesPerSample;
+	float period;
+
+	template <typename FloatType>
+	void processBlock(AudioBuffer<FloatType>& outputBuffer, int startSample, int numSamples) {
+
+		// was passiert bei angleDelta == 0.0 ? (Knacken)
+		// muss abgefragt werden! (warum?)
+		if (angleDelta != 0.0) {
+
+			// für jeden Sample:
+			while (--numSamples >= 0) {
+
+				//FloatType currentSample = 0.0;
+
+				FloatType currentSample = static_cast<FloatType> (std::sin(2 * double_Pi * index * cyclesPerSecond / getSampleRate()));
+				
+				if (currentSample > 0) {
+					currentSample = 1;
+				}
+				else {
+					currentSample = 0;
+				}
+
+				// für jeden Channel:
+				for (int i = outputBuffer.getNumChannels(); --i >= 0;) {
+					// aktuellen Sample zum Buffer hinzufügen:
+					outputBuffer.addSample(i, startSample, currentSample);
+				}
+
+				// aktueller Winkel + WinkelDelta: (ein Schritt weiter im Sinus?)
+				//currentAngle += angleDelta;
+				// ein Schritt weiter im Sample?
+				++startSample;
+				index++;
+			}
+
+		}// if(angleDelta != 0.0)
+
+	}// void processsBlock()
+
+	double currentAngle, angleDelta, level, tailOff;
+	int index;
+};
+
+class SawtoothVoice : public SynthesiserVoice {
+public:
+	SawtoothVoice()
+		// WinkelDelta auf 0.0?
+		// TailOff = sowas wie Release-Zeit?
+		: angleDelta(0.0),
+		tailOff(0.0)
+	{}
+
+	bool canPlaySound(SynthesiserSound* sound) override {
+		//return dynamic_cast<SineSound*> (sound) != nullptr;
+		return true;
+	}
+
+	void startNote(int midiNoteNumber, float velocity,
+		SynthesiserSound* /*sound*/,
+		int /*currentPitchWheelPosition*/) override {
+
+		// entfernen verursacht Knacken:
+		currentAngle = 0.0;
+		level = velocity * 0.15;
+		tailOff = 0.0;
+		index = 0;
+
+		// Cycles per second = Frequenz in Hertz
+		// Cycle = ein Sinuswellendurchgang (= 2 x Pi)
+		// Winkelfrequenz = 2 Pi * Frequenz!
+		cyclesPerSecond = MidiMessage::getMidiNoteInHertz(midiNoteNumber);
+
+		// Cycles per sample = Frequenz / SampleRate
+		cyclesPerSample = cyclesPerSecond / getSampleRate();
+
+		period = getSampleRate() / cyclesPerSecond;
+
+		// value = 2 * Pi * index * frequency/samplerate
+		// darf nicht gelöscht werden! (warum?)
+		angleDelta = cyclesPerSample * 2.0 * double_Pi;
+	}
+
+	void stopNote(float /*velocity*/, bool allowTailOff) override {
+		clearCurrentNote();
+		angleDelta = 0.0;
+		index = 0;
+	}
+
+	void pitchWheelMoved(int /*newValue*/) override {
+		// can't be bothered implementing this for the demo!
+	}
+
+	void controllerMoved(int /*controllerNumber*/, int /*newValue*/) override {
+		// not interested in controllers in this case.
+	}
+
+	void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+	void renderNextBlock(AudioBuffer<double>& outputBuffer, int startSample, int numSamples) override {
+		processBlock(outputBuffer, startSample, numSamples);
+	}
+
+private:
+
+	double cyclesPerSecond;
+	double cyclesPerSample;
+	float period;
+
+	template <typename FloatType>
+	void processBlock(AudioBuffer<FloatType>& outputBuffer, int startSample, int numSamples) {
+
+		// was passiert bei angleDelta == 0.0 ? (Knacken)
+		// muss abgefragt werden! (warum?)
+		if (angleDelta != 0.0) {
+
+			// für jeden Sample:
+			while (--numSamples >= 0) {
+
+				float modulo = fmod(index, period);
+
+				FloatType currentSample = static_cast<FloatType> ((modulo / period) * 2 - 1);
+
+				// für jeden Channel:
+				for (int i = outputBuffer.getNumChannels(); --i >= 0;) {
+					// aktuellen Sample zum Buffer hinzufügen:
+					outputBuffer.addSample(i, startSample, currentSample);
+				}
+
+				// aktueller Winkel + WinkelDelta: (ein Schritt weiter im Sinus?)
+				//currentAngle += angleDelta;
+				// ein Schritt weiter im Sample?
+				++startSample;
+				index++;
+			}
+
+		}// if(angleDelta != 0.0)
+
+	}// void processsBlock()
+
+	double currentAngle, angleDelta, level, tailOff;
+	int index;
+};
+
+
 
 
 //==============================================================================
+//==============================================================================
+//==============================================================================
+
+//==============================================================================
+//==============================================================================
+//==============================================================================
+
+//==============================================================================
+//==============================================================================
+//==============================================================================
+
 SynthAudioProcessor::SynthAudioProcessor()
 {
+	UserParams[MasterBypass] = 0.0f;//default to not bypassed
+	//repeat for "OtherParams":
+	
+	sineSynth.addSound(new SynthSound());
+	for (int i = 0; i < 8; i++) {
+		sineSynth.addVoice(new SineVoice());
+	}
+
+	triangleSynth.addSound(new SynthSound());
+	for (int i = 0; i < 8; i++) {
+		triangleSynth.addVoice(new TriangleVoice());
+	}
+
+	squareSynth.addSound(new SynthSound());
+	for (int i = 0; i < 8; i++) {
+		squareSynth.addVoice(new SquareVoice());
+	}
+
+	sawtoothSynth.addSound(new SynthSound());
+	for (int i = 0; i < 8; i++) {
+		sawtoothSynth.addVoice(new SawtoothVoice());
+	}
+
+	// default sound: no sound
+	currentSynth = -1;
+
+	// target level:
+	gain = 1.0;
+
+	// start level:
+	currentGain = 0.0;
+
+	// attack in milliseconds:
+	attackMS = 2000;
+
+	// samples = ms * samplerate(48,0)
+	attackSamples = attackMS * 48;
+
+	// gain-plus per sample:
+	gainDelta = gain / attackSamples;
+
 }
 
-SynthAudioProcessor::~SynthAudioProcessor()
-{
+SynthAudioProcessor::~SynthAudioProcessor() {
+	
 }
 
 //==============================================================================
 const String SynthAudioProcessor::getName() const
 {
     return JucePlugin_Name;
+}
+
+int SynthAudioProcessor::getNumParameters() {
+	return totalNumParam;
+}
+
+float SynthAudioProcessor::getParameter(int index) {
+	switch (index) {
+	case waveFormParam:
+		return UserParams[waveFormParam];
+		break;
+	case textBoxParam:
+		return UserParams[textBoxParam];
+	default:
+		return 0.0f;
+	}
+}
+
+void SynthAudioProcessor::setParameter(int index, float newValue) {
+	switch (index) {
+	case waveFormParam:
+		UserParams[waveFormParam] = newValue;
+		break;
+	default:
+		UserParams[waveFormParam] = 0;
+		break;
+	}
+}
+
+const String SynthAudioProcessor::getParameterName(int index) {
+	switch (index) {
+	case waveFormParam:
+		return "WaveForm";
+	default:
+		return String::empty;
+	}
+}
+
+const String SynthAudioProcessor::getParameterText(int index) {
+	switch (index) {
+	case waveFormParam:
+		return String(UserParams[waveFormParam]);
+	default:
+		return String::empty;
+	}
 }
 
 const String SynthAudioProcessor::getInputChannelName (int channelIndex) const
@@ -131,9 +661,63 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 
         // ..do something to the data...
     }
+
+	// get current synth:
+	currentSynth = (int)getParameter(waveFormParam);
+
+	// render:
+	switch (currentSynth) {
+	case -1:
+		break;
+	case 0:
+		sineSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+		break;
+	case 1:
+		triangleSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+		break;
+	case 2:
+		squareSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+		break;
+	case 3:
+		sawtoothSynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+		break;
+	}
+
+	// form envelope:
+	if (currentGain < gain) {
+		envelope(buffer);
+	}
+	
 }
 
 //==============================================================================
+
+template <typename FloatType>
+void SynthAudioProcessor::envelope(AudioBuffer<FloatType>& buffer) {
+	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
+		
+		// gain-plus per sample:
+		gainDelta = gain / attackSamples * buffer.getNumSamples();
+
+		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), currentGain, currentGain + gainDelta);
+		
+		if (currentGain < gain) {
+			currentGain = currentGain + gainDelta;
+		}
+		if (currentGain > gain) {
+			currentGain = gain;
+		}
+	}
+}
+
+inline float dB2gain(float dB){
+	return pow(10, dB / 20);
+}
+
+inline float gain2dB(float gain){
+	return 20 * log(gain);
+}
+
 bool SynthAudioProcessor::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)

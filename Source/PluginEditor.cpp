@@ -21,6 +21,8 @@
 //[/Headers]
 
 #include "PluginEditor.h"
+#include <string>
+#include <sstream>
 
 
 //[MiscUserDefs] You can add your own user definitions and misc code here...
@@ -34,19 +36,31 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor (SynthAudioProcessor& owner
 	startTimer(200);//starts timer with interval of 200mS
     //[/Constructor_pre]
 
-    addAndMakeVisible (titleLabel = new Label ("titleLabel",
-                                               TRANS("Synth")));
-    titleLabel->setFont (Font (20.00f, Font::plain));
-    titleLabel->setJustificationType (Justification::centred);
-    titleLabel->setEditable (false, false, false);
-    titleLabel->setColour (TextEditor::textColourId, Colours::black);
-    titleLabel->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+    addAndMakeVisible (waveformCombo = new ComboBox ("waveformCombo"));
+    waveformCombo->setEditableText (false);
+    waveformCombo->setJustificationType (Justification::centredLeft);
+    waveformCombo->setTextWhenNothingSelected (TRANS("select waveform"));
+    waveformCombo->setTextWhenNoChoicesAvailable (TRANS("(no choices)"));
+    waveformCombo->addItem (TRANS("Sine"), 1);
+    waveformCombo->addItem (TRANS("Triangle"), 2);
+    waveformCombo->addItem (TRANS("Rectangle"), 3);
+    waveformCombo->addItem (TRANS("Sawtooth"), 4);
+    waveformCombo->addListener (this);
+
+    addAndMakeVisible (textbox = new TextEditor ("textbox"));
+    textbox->setMultiLine (false);
+    textbox->setReturnKeyStartsNewLine (false);
+    textbox->setReadOnly (true);
+    textbox->setScrollbarsShown (true);
+    textbox->setCaretVisible (false);
+    textbox->setPopupMenuEnabled (true);
+    textbox->setText (String::empty);
 
 
     //[UserPreSize]
     //[/UserPreSize]
 
-    setSize (600, 400);
+    setSize (200, 200);
 
 
     //[Constructor] You can add your own custom stuff here..
@@ -58,7 +72,8 @@ SynthAudioProcessorEditor::~SynthAudioProcessorEditor()
     //[Destructor_pre]. You can add your own custom destruction code here..
     //[/Destructor_pre]
 
-    titleLabel = nullptr;
+    waveformCombo = nullptr;
+    textbox = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -71,10 +86,10 @@ void SynthAudioProcessorEditor::paint (Graphics& g)
     //[UserPrePaint] Add your own custom painting code here..
     //[/UserPrePaint]
 
-    g.fillAll (Colours::white);
+    g.fillAll (Colour (0xff39bd9f));
 
-    g.setColour (Colour (0xff2aa568));
-    g.fillRect (0, 0, 600, 400);
+    g.setColour (Colours::black);
+    g.drawRect (0, 0, 200, 200, 1);
 
     //[UserPaint] Add your own custom painting code here..
     //[/UserPaint]
@@ -85,9 +100,33 @@ void SynthAudioProcessorEditor::resized()
     //[UserPreResize] Add your own custom resize code here..
     //[/UserPreResize]
 
-    titleLabel->setBounds (0, 0, 400, 24);
+    waveformCombo->setBounds (24, 16, 150, 24);
+    textbox->setBounds (8, 48, 184, 144);
     //[UserResized] Add your own custom resize handling here..
     //[/UserResized]
+}
+
+void SynthAudioProcessorEditor::comboBoxChanged (ComboBox* comboBoxThatHasChanged)
+{
+    //[UsercomboBoxChanged_Pre]
+	SynthAudioProcessor* ourProcessor = getProcessor();
+    //[/UsercomboBoxChanged_Pre]
+
+    if (comboBoxThatHasChanged == waveformCombo)
+    {
+        //[UserComboBoxCode_waveformCombo] -- add your combo box handling code here..
+		ourProcessor->setParameter(1, waveformCombo->getSelectedItemIndex());
+		
+		std::ostringstream strs;
+		strs << ourProcessor->gainDelta;
+		std::string str = strs.str();
+
+		textbox->setText(str);
+        //[/UserComboBoxCode_waveformCombo]
+    }
+
+    //[UsercomboBoxChanged_Post]
+    //[/UsercomboBoxChanged_Post]
 }
 
 
@@ -114,15 +153,18 @@ BEGIN_JUCER_METADATA
                  componentName="" parentClasses="public AudioProcessorEditor, public Timer"
                  constructorParams="SynthAudioProcessor&amp; ownerFilter" variableInitialisers="AudioProcessorEditor(ownerFilter)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
-                 fixedSize="0" initialWidth="600" initialHeight="400">
-  <BACKGROUND backgroundColour="ffffffff">
-    <RECT pos="0 0 600 400" fill="solid: ff2aa568" hasStroke="0"/>
+                 fixedSize="0" initialWidth="200" initialHeight="200">
+  <BACKGROUND backgroundColour="ff39bd9f">
+    <RECT pos="0 0 200 200" fill="solid: ffffff" hasStroke="1" stroke="1, mitered, butt"
+          strokeColour="solid: ff000000"/>
   </BACKGROUND>
-  <LABEL name="titleLabel" id="58d7aa0d307daac8" memberName="titleLabel"
-         virtualName="" explicitFocusOrder="0" pos="0 0 400 24" edTextCol="ff000000"
-         edBkgCol="0" labelText="Synth" editableSingleClick="0" editableDoubleClick="0"
-         focusDiscardsChanges="0" fontname="Default font" fontsize="20"
-         bold="0" italic="0" justification="36"/>
+  <COMBOBOX name="waveformCombo" id="fbac7f8dd6c0ec9b" memberName="waveformCombo"
+            virtualName="" explicitFocusOrder="0" pos="24 16 150 24" editable="0"
+            layout="33" items="Sine&#10;Triangle&#10;Rectangle&#10;Sawtooth"
+            textWhenNonSelected="select waveform" textWhenNoItems="(no choices)"/>
+  <TEXTEDITOR name="textbox" id="5a2abdf57072a8ec" memberName="textbox" virtualName=""
+              explicitFocusOrder="0" pos="8 48 184 144" initialText="" multiline="0"
+              retKeyStartsLine="0" readonly="1" scrollbars="1" caret="0" popupmenu="1"/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA
