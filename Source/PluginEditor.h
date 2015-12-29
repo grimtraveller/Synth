@@ -23,6 +23,7 @@
 //[Headers]     -- You can add your own extra header files here --
 #include "JuceHeader.h"
 #include "PluginProcessor.h"
+#include "TextConsole.h"
 //[/Headers]
 
 
@@ -37,6 +38,7 @@
 */
 class SynthAudioProcessorEditor  : public AudioProcessorEditor,
                                    public Timer,
+                                   public TextEditorListener,
                                    public ComboBoxListener
 {
 public:
@@ -46,11 +48,16 @@ public:
 
     //==============================================================================
     //[UserMethods]     -- You can add your own custom methods in this section.
+
 	void timerCallback();
+
 	SynthAudioProcessor* getProcessor() const
 	{
 		return static_cast <SynthAudioProcessor*>(getAudioProcessor());
 	}
+
+	//void textChanged(TextConsole* consoleThatHasChanged);
+
     //[/UserMethods]
 
     void paint (Graphics& g);
@@ -65,7 +72,7 @@ private:
 
     //==============================================================================
     ScopedPointer<ComboBox> waveformCombo;
-    ScopedPointer<TextEditor> textbox;
+    ScopedPointer<TextConsole> console;
 
 
     //==============================================================================

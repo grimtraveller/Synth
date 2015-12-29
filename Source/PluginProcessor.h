@@ -12,7 +12,13 @@
 #define PLUGINPROCESSOR_H_INCLUDED
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "SynthSound.h"
+#include "SineVoice.h"
+#include "TriangleVoice.h"
+#include "SquareVoice.h"
+#include "SawtoothVoice.h"
 #include <string>
+#include <math.h>
 
 
 //==============================================================================
@@ -70,9 +76,15 @@ public:
 	enum Parameters {
 		MasterBypass = 0,
 		waveFormParam = 1,
-		textBoxParam = 2,
 		totalNumParam
 	};
+
+	void log(std::string text);
+
+	bool consoleChanged;
+
+	int waveForm;
+	std::string consoleText;
 
 	int attackMS;
 	int attackSamples;
@@ -89,11 +101,20 @@ private:
 	bool UIUpdateFlag;
 
 	Synthesiser sineSynth;
-	Synthesiser triangleSynth;
-	Synthesiser squareSynth;
-	Synthesiser sawtoothSynth;
+	SineVoice sine1;
 
-	int currentSynth;
+	Synthesiser triangleSynth;
+	TriangleVoice triangle1;
+
+	Synthesiser squareSynth;
+	SquareVoice square1;
+
+	Synthesiser sawtoothSynth;
+	SawtoothVoice sawtooth1;
+
+	std::vector<Synthesiser*> synths;
+
+	Synthesiser* currentSynthP;
 
 	template <typename FloatType>
 	void envelope(AudioBuffer<FloatType>& buffer);

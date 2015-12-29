@@ -21,8 +21,6 @@
 //[/Headers]
 
 #include "PluginEditor.h"
-#include <string>
-#include <sstream>
 
 
 //[MiscUserDefs] You can add your own user definitions and misc code here...
@@ -47,14 +45,8 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor (SynthAudioProcessor& owner
     waveformCombo->addItem (TRANS("Sawtooth"), 4);
     waveformCombo->addListener (this);
 
-    addAndMakeVisible (textbox = new TextEditor ("textbox"));
-    textbox->setMultiLine (false);
-    textbox->setReturnKeyStartsNewLine (false);
-    textbox->setReadOnly (true);
-    textbox->setScrollbarsShown (true);
-    textbox->setCaretVisible (false);
-    textbox->setPopupMenuEnabled (true);
-    textbox->setText (String::empty);
+    addAndMakeVisible (console = new TextConsole());
+    console->setName ("component");
 
 
     //[UserPreSize]
@@ -64,6 +56,7 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor (SynthAudioProcessor& owner
 
 
     //[Constructor] You can add your own custom stuff here..
+	console->addListener(this);
     //[/Constructor]
 }
 
@@ -73,7 +66,7 @@ SynthAudioProcessorEditor::~SynthAudioProcessorEditor()
     //[/Destructor_pre]
 
     waveformCombo = nullptr;
-    textbox = nullptr;
+    console = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -101,7 +94,7 @@ void SynthAudioProcessorEditor::resized()
     //[/UserPreResize]
 
     waveformCombo->setBounds (24, 16, 150, 24);
-    textbox->setBounds (8, 48, 184, 144);
+    console->setBounds (8, 56, 184, 136);
     //[UserResized] Add your own custom resize handling here..
     //[/UserResized]
 }
@@ -116,12 +109,6 @@ void SynthAudioProcessorEditor::comboBoxChanged (ComboBox* comboBoxThatHasChange
     {
         //[UserComboBoxCode_waveformCombo] -- add your combo box handling code here..
 		ourProcessor->setParameter(1, waveformCombo->getSelectedItemIndex());
-		
-		std::ostringstream strs;
-		strs << ourProcessor->gainDelta;
-		std::string str = strs.str();
-
-		textbox->setText(str);
         //[/UserComboBoxCode_waveformCombo]
     }
 
@@ -136,6 +123,10 @@ void SynthAudioProcessorEditor::timerCallback()
 {
 	SynthAudioProcessor* ourProcessor = getProcessor();
 	//exchange any data you want between UI elements and the Plugin "ourProcessor"
+	if (ourProcessor->consoleChanged == true) {
+		console->addLine(ourProcessor->consoleText);
+		ourProcessor->consoleChanged = false;
+	}
 }
 //[/MiscUserCode]
 
@@ -150,7 +141,7 @@ void SynthAudioProcessorEditor::timerCallback()
 BEGIN_JUCER_METADATA
 
 <JUCER_COMPONENT documentType="Component" className="SynthAudioProcessorEditor"
-                 componentName="" parentClasses="public AudioProcessorEditor, public Timer"
+                 componentName="" parentClasses="public AudioProcessorEditor, public Timer, public TextEditorListener"
                  constructorParams="SynthAudioProcessor&amp; ownerFilter" variableInitialisers="AudioProcessorEditor(ownerFilter)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
                  fixedSize="0" initialWidth="200" initialHeight="200">
@@ -162,9 +153,9 @@ BEGIN_JUCER_METADATA
             virtualName="" explicitFocusOrder="0" pos="24 16 150 24" editable="0"
             layout="33" items="Sine&#10;Triangle&#10;Rectangle&#10;Sawtooth"
             textWhenNonSelected="select waveform" textWhenNoItems="(no choices)"/>
-  <TEXTEDITOR name="textbox" id="5a2abdf57072a8ec" memberName="textbox" virtualName=""
-              explicitFocusOrder="0" pos="8 48 184 144" initialText="" multiline="0"
-              retKeyStartsLine="0" readonly="1" scrollbars="1" caret="0" popupmenu="1"/>
+  <GENERICCOMPONENT name="component" id="4276f77e827d2135" memberName="console" virtualName=""
+                    explicitFocusOrder="0" pos="8 56 184 136" class="TextConsole"
+                    params=""/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA
