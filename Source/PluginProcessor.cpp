@@ -50,18 +50,17 @@ SynthAudioProcessor::SynthAudioProcessor()
 	// default sound: no sound
 	currentSynthP = nullptr;
 
-	// target level:
+	// envelope:
+	attackMS = 0;
 	gain = 1.0;
-
-	// start level:
 	currentGain = 0.0;
 
-	// attack in milliseconds:
-	attackMS = 0;
-	
+	// console:
 	consoleChanged = false;
 
-	log("attackMS: " + std::to_string(attackMS));
+	// delay:
+	delayLengthMS = 1000;
+	buffer.resize(delayLengthMS * 48);
 
 }
 
@@ -220,65 +219,72 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
     // this code if your algorithm already fills all the output channels.
     for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    for (int channel = 0; channel < getNumInputChannels(); ++channel)
-    {
-        float* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
-    }
 	
 	if (waveForm >= 0) {
 		// render selected sound:
 		currentSynthP = synths.at(waveForm);
 		currentSynthP->renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 		// edit envelope:
-		if (attackMS > 0) {
-			for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
-				if (currentSynthP->getVoice(i)->isVoiceActive()) {
-					if (currentGains.at(i) < gain) {
-						envelope(currentGains.at(i), buffer);
-						//log(i + ":" + std::to_string(currentGains.at(i)));
-					}
-				}
-				else {
-					currentGains.at(i) = 0.0;
-				}
-			}// for ()
-		}// if (attackMS > 0)
-	}// if (waveForn >= 0)
+		envelope(buffer);
+		// add delay:
+		delay(buffer);
+	}
 
 }
 
 //==============================================================================
 
 template <typename FloatType>
-void SynthAudioProcessor::envelope(float& cg, AudioBuffer<FloatType>& buffer) {
+void SynthAudioProcessor::envelope(AudioBuffer<FloatType>& buffer) {
+	if (attackMS > 0) {
+		for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
+			if (currentSynthP->getVoice(i)->isVoiceActive()) {
+				if (currentGains.at(i) < gain) {
+					attack(currentGains.at(i), buffer);
+					log(i + ":" + std::to_string(currentGains.at(i)));
+				}
+			}
+			else {
+				currentGains.at(i) = 0.0;
+			}
+		}// for (voices)
+	}// if (attackMS > 0)
+}
+
+template <typename FloatType>
+void SynthAudioProcessor::attack(float& cg, AudioBuffer<FloatType>& buffer) {
 	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
-		
 		// samples = ms * samplerate(48,0)
 		int attackSamples = attackMS * 48;
 		// gain-plus per sample:
 		float gainDelta = gain / attackSamples * buffer.getNumSamples();
-
+		// apply gain from first to last buffer sample:
 		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg + gainDelta));
-		
+		// add gainDelta:
 		if (cg < gain) {
 			cg = cg + gainDelta;
 		}
 		if (cg > gain) {
 			cg = gain;
 		}
+	}// for (channels)
+}
 
+template <typename FloatType>
+void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
+	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
+		for (int i = 0; i < buffer.getNumSamples(); i++) {
+			float value = this->buffer.readWithDelay(delayLengthMS * 48);
+			this->buffer.write(buffer.getSample(channel, i));
+			value = value + buffer.getSample(channel, i);
+			buffer.setSample(channel, i, value);
+		}
 	}
 }
 
 inline float dB2gain(float dB){
 	return pow(10, dB / 20);
 }
-
 inline float gain2dB(float gain){
 	return 20 * log(gain);
 }
@@ -288,8 +294,7 @@ void SynthAudioProcessor::log(std::string text) {
 	consoleChanged = true;
 }
 
-bool SynthAudioProcessor::hasEditor() const
-{
+bool SynthAudioProcessor::hasEditor() const {
     return true; // (change this to false if you choose to not supply an editor)
 }
 

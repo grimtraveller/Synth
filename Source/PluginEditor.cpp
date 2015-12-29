@@ -31,7 +31,7 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor (SynthAudioProcessor& owner
     : AudioProcessorEditor(ownerFilter)
 {
     //[Constructor_pre] You can add your own custom stuff here..
-	startTimer(200);//starts timer with interval of 200mS
+	startTimer(50);//starts timer (ms)
     //[/Constructor_pre]
 
     addAndMakeVisible (waveformCombo = new ComboBox ("waveformCombo"));

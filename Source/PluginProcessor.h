@@ -17,6 +17,7 @@
 #include "TriangleVoice.h"
 #include "SquareVoice.h"
 #include "SawtoothVoice.h"
+#include "RingBuffer.h"
 #include <string>
 #include <math.h>
 
@@ -77,20 +78,31 @@ public:
 		MasterBypass = 0,
 		waveFormParam = 1,
 		attackParam = 2,
+		delayLengthParam = 3,
+		dryMixParam = 4,
+		wetMixParam = 5,
+		feedbackParam = 6,
 		totalNumParam
 	};
 
+	// Console:
 	void log(std::string text);
-
 	bool consoleChanged;
-
-	int waveForm;
 	std::string consoleText;
 
-	int attackMS;
+	// WaveForm:
+	int waveForm;
 
+	// Envelope:
+	int attackMS;
 	float gain;
 	float currentGain;
+
+	// Delay:
+	int delayLengthMS;
+	float dryMix;
+	float wetMix;
+	float feedback;
 
 private:
     //==============================================================================
@@ -99,19 +111,30 @@ private:
 	float UserParams[totalNumParam];
 	bool UIUpdateFlag;
 
+	// Waveform:
 	Synthesiser sineSynth;
 	Synthesiser triangleSynth;
 	Synthesiser squareSynth;
 	Synthesiser sawtoothSynth;
-
 	std::vector<Synthesiser*> synths;
-
-	std::vector<float> currentGains;
-
 	Synthesiser* currentSynthP;
 
+	// Envelope:
+	std::vector<float> currentGains;
 	template <typename FloatType>
-	void envelope(float& currentGain, AudioBuffer<FloatType>& buffer);
+	void envelope(AudioBuffer<FloatType>& buffer);
+	template <typename FloatType>
+	void attack(float& currentGain, AudioBuffer<FloatType>& buffer);
+
+	// Delay:
+	AudioSampleBuffer delayBuffer;
+	int delayBufferLength;
+	int delayReadPosition;
+	int delayWritePosition;
+	template <typename FloatType>
+	void delay(AudioBuffer<FloatType>& buffer);
+
+	RingBuffer buffer;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };
