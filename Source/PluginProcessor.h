@@ -101,23 +101,18 @@ private:
 	bool UIUpdateFlag;
 
 	Synthesiser sineSynth;
-	SineVoice sine1;
-
 	Synthesiser triangleSynth;
-	TriangleVoice triangle1;
-
 	Synthesiser squareSynth;
-	SquareVoice square1;
-
 	Synthesiser sawtoothSynth;
-	SawtoothVoice sawtooth1;
 
 	std::vector<Synthesiser*> synths;
+
+	std::vector<float> currentGains;
 
 	Synthesiser* currentSynthP;
 
 	template <typename FloatType>
-	void envelope(AudioBuffer<FloatType>& buffer);
+	void envelope(float& currentGain, AudioBuffer<FloatType>& buffer);
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };

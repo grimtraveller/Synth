@@ -16,28 +16,34 @@ SynthAudioProcessor::SynthAudioProcessor()
 	UserParams[MasterBypass] = 0.0f;//default to not bypassed
 	//repeat for "OtherParams":
 
+	int numberOfVoices = 4;
+
+	for (int i = 0; i < numberOfVoices; i++) {
+		currentGains.push_back(0.0f);
+	}
+
 	synths.push_back(&sineSynth);
 	synths.push_back(&triangleSynth);
 	synths.push_back(&squareSynth);
 	synths.push_back(&sawtoothSynth);
 
 	sineSynth.addSound(new SynthSound());
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < numberOfVoices; i++) {
 		sineSynth.addVoice(new SineVoice());
 	}
 
 	triangleSynth.addSound(new SynthSound());
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < numberOfVoices; i++) {
 		triangleSynth.addVoice(new TriangleVoice());
 	}
 
 	squareSynth.addSound(new SynthSound());
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < numberOfVoices; i++) {
 		squareSynth.addVoice(new SquareVoice());
 	}
 
 	sawtoothSynth.addSound(new SynthSound());
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < numberOfVoices; i++) {
 		sawtoothSynth.addVoice(new SawtoothVoice());
 	}
 
@@ -230,11 +236,14 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 
 		currentSynthP->renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 		for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
-			if (sineSynth.getVoice(i)->isVoiceActive()) {
-				if (currentGain < gain) {
-					envelope(buffer);
-					log(std::to_string(currentGain));
+			if (currentSynthP->getVoice(i)->isVoiceActive()) {
+				if (currentGains.at(i) < gain) {
+					envelope(currentGains.at(i), buffer);
+					log(i + ":" + std::to_string(currentGains.at(i)));
 				}
+			}
+			else {
+				currentGains.at(i) = 0.0;
 			}
 		}
 		
@@ -245,19 +254,19 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 //==============================================================================
 
 template <typename FloatType>
-void SynthAudioProcessor::envelope(AudioBuffer<FloatType>& buffer) {
+void SynthAudioProcessor::envelope(float& cg, AudioBuffer<FloatType>& buffer) {
 	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
 		
 		// gain-plus per sample:
 		gainDelta = gain / attackSamples * buffer.getNumSamples();
 
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), currentGain, (currentGain + gainDelta));
+		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg + gainDelta));
 		
-		if (currentGain < gain) {
-			currentGain = currentGain + gainDelta;
+		if (cg < gain) {
+			cg = cg + gainDelta;
 		}
-		if (currentGain > gain) {
-			currentGain = gain;
+		if (cg > gain) {
+			cg = gain;
 		}
 
 	}
