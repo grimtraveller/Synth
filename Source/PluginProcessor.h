@@ -76,6 +76,7 @@ public:
 	enum Parameters {
 		MasterBypass = 0,
 		waveFormParam = 1,
+		attackParam = 2,
 		totalNumParam
 	};
 
@@ -87,8 +88,6 @@ public:
 	std::string consoleText;
 
 	int attackMS;
-	int attackSamples;
-	float gainDelta;
 
 	float gain;
 	float currentGain;

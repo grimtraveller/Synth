@@ -39,7 +39,8 @@
 class SynthAudioProcessorEditor  : public AudioProcessorEditor,
                                    public Timer,
                                    public TextEditorListener,
-                                   public ComboBoxListener
+                                   public ComboBoxListener,
+                                   public SliderListener
 {
 public:
     //==============================================================================
@@ -63,6 +64,7 @@ public:
     void paint (Graphics& g);
     void resized();
     void comboBoxChanged (ComboBox* comboBoxThatHasChanged);
+    void sliderValueChanged (Slider* sliderThatWasMoved);
 
 
 
@@ -73,6 +75,7 @@ private:
     //==============================================================================
     ScopedPointer<ComboBox> waveformCombo;
     ScopedPointer<TextConsole> console;
+    ScopedPointer<Slider> attackSlider;
 
 
     //==============================================================================

@@ -57,13 +57,7 @@ SynthAudioProcessor::SynthAudioProcessor()
 	currentGain = 0.0;
 
 	// attack in milliseconds:
-	attackMS = 2000;
-
-	// samples = ms * samplerate(48,0)
-	attackSamples = attackMS * 48;
-
-	// gain-plus per sample:
-	gainDelta = gain / attackSamples;
+	attackMS = 0;
 	
 	consoleChanged = false;
 
@@ -89,6 +83,8 @@ float SynthAudioProcessor::getParameter(int index) {
 	switch (index) {
 	case waveFormParam:
 		return waveForm;
+	case attackParam:
+		return attackMS;
 	default:
 		return 0.0f;
 	}
@@ -99,6 +95,8 @@ void SynthAudioProcessor::setParameter(int index, float newValue) {
 	case waveFormParam:
 		waveForm = newValue;
 		break;
+	case attackParam:
+		attackMS = newValue;
 	default:
 		UserParams[waveFormParam] = 0;
 		break;
@@ -109,6 +107,8 @@ const String SynthAudioProcessor::getParameterName(int index) {
 	switch (index) {
 	case waveFormParam:
 		return "WaveForm";
+	case attackParam:
+		return "Attack";
 	default:
 		return String::empty;
 	}
@@ -118,6 +118,8 @@ const String SynthAudioProcessor::getParameterText(int index) {
 	switch (index) {
 	case waveFormParam:
 		return String(UserParams[waveFormParam]);
+	case attackParam:
+		return String(UserParams[attackParam]);
 	default:
 		return String::empty;
 	}
@@ -227,27 +229,26 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 
         // ..do something to the data...
     }
-
-	// get current synth:
 	
 	if (waveForm >= 0) {
-
+		// render selected sound:
 		currentSynthP = synths.at(waveForm);
-
 		currentSynthP->renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-		for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
-			if (currentSynthP->getVoice(i)->isVoiceActive()) {
-				if (currentGains.at(i) < gain) {
-					envelope(currentGains.at(i), buffer);
-					log(i + ":" + std::to_string(currentGains.at(i)));
+		// edit envelope:
+		if (attackMS > 0) {
+			for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
+				if (currentSynthP->getVoice(i)->isVoiceActive()) {
+					if (currentGains.at(i) < gain) {
+						envelope(currentGains.at(i), buffer);
+						//log(i + ":" + std::to_string(currentGains.at(i)));
+					}
 				}
-			}
-			else {
-				currentGains.at(i) = 0.0;
-			}
-		}
-		
-	}
+				else {
+					currentGains.at(i) = 0.0;
+				}
+			}// for ()
+		}// if (attackMS > 0)
+	}// if (waveForn >= 0)
 
 }
 
@@ -257,8 +258,10 @@ template <typename FloatType>
 void SynthAudioProcessor::envelope(float& cg, AudioBuffer<FloatType>& buffer) {
 	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
 		
+		// samples = ms * samplerate(48,0)
+		int attackSamples = attackMS * 48;
 		// gain-plus per sample:
-		gainDelta = gain / attackSamples * buffer.getNumSamples();
+		float gainDelta = gain / attackSamples * buffer.getNumSamples();
 
 		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg + gainDelta));
 		

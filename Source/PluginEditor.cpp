@@ -48,13 +48,19 @@ SynthAudioProcessorEditor::SynthAudioProcessorEditor (SynthAudioProcessor& owner
     addAndMakeVisible (console = new TextConsole());
     console->setName ("component");
 
+    addAndMakeVisible (attackSlider = new Slider ("attackSlider"));
+    attackSlider->setRange (0, 3000, 10);
+    attackSlider->setSliderStyle (Slider::LinearHorizontal);
+    attackSlider->setTextBoxStyle (Slider::TextBoxLeft, false, 80, 20);
+    attackSlider->addListener (this);
+
 
     //[UserPreSize]
     //[/UserPreSize]
 
-    setSize (200, 200);
+    setSize (356, 304);
 
-
+	
     //[Constructor] You can add your own custom stuff here..
 	console->addListener(this);
     //[/Constructor]
@@ -67,6 +73,7 @@ SynthAudioProcessorEditor::~SynthAudioProcessorEditor()
 
     waveformCombo = nullptr;
     console = nullptr;
+    attackSlider = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -82,7 +89,7 @@ void SynthAudioProcessorEditor::paint (Graphics& g)
     g.fillAll (Colour (0xff39bd9f));
 
     g.setColour (Colours::black);
-    g.drawRect (0, 0, 200, 200, 1);
+    g.drawRect (0, 0, 356, 304, 1);
 
     //[UserPaint] Add your own custom painting code here..
     //[/UserPaint]
@@ -93,8 +100,9 @@ void SynthAudioProcessorEditor::resized()
     //[UserPreResize] Add your own custom resize code here..
     //[/UserPreResize]
 
-    waveformCombo->setBounds (24, 16, 150, 24);
-    console->setBounds (8, 56, 184, 136);
+    waveformCombo->setBounds (96, 24, 176, 24);
+    console->setBounds (6, 161, 344, 136);
+    attackSlider->setBounds (96, 72, 176, 24);
     //[UserResized] Add your own custom resize handling here..
     //[/UserResized]
 }
@@ -114,6 +122,23 @@ void SynthAudioProcessorEditor::comboBoxChanged (ComboBox* comboBoxThatHasChange
 
     //[UsercomboBoxChanged_Post]
     //[/UsercomboBoxChanged_Post]
+}
+
+void SynthAudioProcessorEditor::sliderValueChanged (Slider* sliderThatWasMoved)
+{
+    //[UsersliderValueChanged_Pre]
+	SynthAudioProcessor* ourProcessor = getProcessor();
+    //[/UsersliderValueChanged_Pre]
+
+    if (sliderThatWasMoved == attackSlider)
+    {
+        //[UserSliderCode_attackSlider] -- add your slider handling code here..
+		ourProcessor->setParameter(2, attackSlider->getValue());
+        //[/UserSliderCode_attackSlider]
+    }
+
+    //[UsersliderValueChanged_Post]
+    //[/UsersliderValueChanged_Post]
 }
 
 
@@ -144,18 +169,22 @@ BEGIN_JUCER_METADATA
                  componentName="" parentClasses="public AudioProcessorEditor, public Timer, public TextEditorListener"
                  constructorParams="SynthAudioProcessor&amp; ownerFilter" variableInitialisers="AudioProcessorEditor(ownerFilter)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
-                 fixedSize="0" initialWidth="200" initialHeight="200">
+                 fixedSize="1" initialWidth="356" initialHeight="304">
   <BACKGROUND backgroundColour="ff39bd9f">
-    <RECT pos="0 0 200 200" fill="solid: ffffff" hasStroke="1" stroke="1, mitered, butt"
+    <RECT pos="0 0 356 304" fill="solid: ffffff" hasStroke="1" stroke="1, mitered, butt"
           strokeColour="solid: ff000000"/>
   </BACKGROUND>
   <COMBOBOX name="waveformCombo" id="fbac7f8dd6c0ec9b" memberName="waveformCombo"
-            virtualName="" explicitFocusOrder="0" pos="24 16 150 24" editable="0"
+            virtualName="" explicitFocusOrder="0" pos="96 24 176 24" editable="0"
             layout="33" items="Sine&#10;Triangle&#10;Rectangle&#10;Sawtooth"
             textWhenNonSelected="select waveform" textWhenNoItems="(no choices)"/>
   <GENERICCOMPONENT name="component" id="4276f77e827d2135" memberName="console" virtualName=""
-                    explicitFocusOrder="0" pos="8 56 184 136" class="TextConsole"
+                    explicitFocusOrder="0" pos="6 161 344 136" class="TextConsole"
                     params=""/>
+  <SLIDER name="attackSlider" id="a83899bf58c16d70" memberName="attackSlider"
+          virtualName="" explicitFocusOrder="0" pos="96 72 176 24" min="0"
+          max="3000" int="10" style="LinearHorizontal" textBoxPos="TextBoxLeft"
+          textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA
