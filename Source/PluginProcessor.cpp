@@ -52,6 +52,9 @@ SynthAudioProcessor::SynthAudioProcessor()
 
 	// envelope:
 	attackMS = 0;
+	decayMS = 0;
+	sustain = 1.0;
+	releaseMS = 0;
 	gain = 1.0;
 	currentGain = 0.0;
 
@@ -59,13 +62,13 @@ SynthAudioProcessor::SynthAudioProcessor()
 	consoleChanged = false;
 
 	// delay:
-	delayLengthMS = 1000;
-	buffer.resize(delayLengthMS * 48);
+	delayLengthMS = 0;
+	dryMix = 0;
+	wetMix = 0;
 
 }
 
 SynthAudioProcessor::~SynthAudioProcessor() {
-	//delete currentSynthP;
 }
 
 //==============================================================================
@@ -84,6 +87,18 @@ float SynthAudioProcessor::getParameter(int index) {
 		return waveForm;
 	case attackParam:
 		return attackMS;
+	case delayLengthParam:
+		return delayLengthMS;
+	case dryMixParam:
+		return dryMix;
+	case wetMixParam:
+		return wetMix;
+	case decayParam:
+		return decayMS;
+	case sustainParam:
+		return sustain;
+	case releaseParam:
+		return releaseMS;
 	default:
 		return 0.0f;
 	}
@@ -96,6 +111,25 @@ void SynthAudioProcessor::setParameter(int index, float newValue) {
 		break;
 	case attackParam:
 		attackMS = newValue;
+		break;
+	case delayLengthParam:
+		delayLengthMS = newValue;
+		break;
+	case dryMixParam:
+		dryMix = newValue;
+		break;
+	case wetMixParam:
+		wetMix = newValue;
+		break;
+	case decayParam:
+		decayMS = newValue;
+		break;
+	case sustainParam:
+		sustain = newValue;
+		break;
+	case releaseParam:
+		releaseMS = newValue;
+		break;
 	default:
 		UserParams[waveFormParam] = 0;
 		break;
@@ -108,6 +142,18 @@ const String SynthAudioProcessor::getParameterName(int index) {
 		return "WaveForm";
 	case attackParam:
 		return "Attack";
+	case delayLengthParam:
+		return "Delay Length";
+	case dryMixParam:
+		return "Dry Mix";
+	case wetMixParam:
+		return "Wet Mix";
+	case decayParam:
+		return "Decay";
+	case sustainParam:
+		return "Sustain";
+	case releaseParam:
+		return "Release";
 	default:
 		return String::empty;
 	}
@@ -119,6 +165,18 @@ const String SynthAudioProcessor::getParameterText(int index) {
 		return String(UserParams[waveFormParam]);
 	case attackParam:
 		return String(UserParams[attackParam]);
+	case delayLengthParam:
+		return String(UserParams[delayLengthParam]);
+	case dryMixParam:
+		return String(UserParams[dryMixParam]);
+	case wetMixParam:
+		return String(UserParams[wetMixParam]);
+	case decayParam:
+		return String(UserParams[decayParam]);
+	case sustainParam:
+		return String(UserParams[sustainParam]);
+	case releaseParam:
+		return String(UserParams[releaseParam]);
 	default:
 		return String::empty;
 	}
@@ -224,10 +282,21 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 		// render selected sound:
 		currentSynthP = synths.at(waveForm);
 		currentSynthP->renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-		// edit envelope:
-		envelope(buffer);
+		for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
+			// if voice is playing:
+			if (currentSynthP->getVoice(i)->isVoiceActive()) {
+				// edit envelope:
+				envelope(buffer, i);
+			}
+			else {
+				currentGains.at(i) = 0.0;
+				// release...
+			}
+		}
 		// add delay:
-		delay(buffer);
+		if (delayLengthMS > 0) {
+			delay(buffer);
+		}
 	}
 
 }
@@ -235,19 +304,12 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 //==============================================================================
 
 template <typename FloatType>
-void SynthAudioProcessor::envelope(AudioBuffer<FloatType>& buffer) {
+void SynthAudioProcessor::envelope(AudioBuffer<FloatType>& buffer, int i) {
 	if (attackMS > 0) {
-		for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
-			if (currentSynthP->getVoice(i)->isVoiceActive()) {
-				if (currentGains.at(i) < gain) {
-					attack(currentGains.at(i), buffer);
-					log(i + ":" + std::to_string(currentGains.at(i)));
-				}
-			}
-			else {
-				currentGains.at(i) = 0.0;
-			}
-		}// for (voices)
+		if (currentGains.at(i) < gain) {
+			attack(currentGains.at(i), buffer);
+			//log(i + ":" + std::to_string(currentGains.at(i)));
+		}
 	}// if (attackMS > 0)
 }
 
@@ -272,11 +334,12 @@ void SynthAudioProcessor::attack(float& cg, AudioBuffer<FloatType>& buffer) {
 
 template <typename FloatType>
 void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
+	ringBuffer.resize(delayLengthMS * 48);
 	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
 		for (int i = 0; i < buffer.getNumSamples(); i++) {
-			float value = this->buffer.readWithDelay(delayLengthMS * 48);
-			this->buffer.write(buffer.getSample(channel, i));
-			value = value + buffer.getSample(channel, i);
+			float value = ringBuffer.readWithDelay(delayLengthMS * 48);
+			ringBuffer.write(buffer.getSample(channel, i));
+			value = value * wetMix/100 + buffer.getSample(channel, i) * dryMix/100;
 			buffer.setSample(channel, i, value);
 		}
 	}

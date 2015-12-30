@@ -81,7 +81,9 @@ public:
 		delayLengthParam = 3,
 		dryMixParam = 4,
 		wetMixParam = 5,
-		feedbackParam = 6,
+		decayParam = 6,
+		sustainParam = 7,
+		releaseParam = 8,
 		totalNumParam
 	};
 
@@ -95,6 +97,9 @@ public:
 
 	// Envelope:
 	int attackMS;
+	int decayMS;
+	float sustain;
+	int releaseMS;
 	float gain;
 	float currentGain;
 
@@ -103,6 +108,7 @@ public:
 	float dryMix;
 	float wetMix;
 	float feedback;
+	RingBuffer ringBuffer;
 
 private:
     //==============================================================================
@@ -122,7 +128,7 @@ private:
 	// Envelope:
 	std::vector<float> currentGains;
 	template <typename FloatType>
-	void envelope(AudioBuffer<FloatType>& buffer);
+	void envelope(AudioBuffer<FloatType>& buffer, int i);
 	template <typename FloatType>
 	void attack(float& currentGain, AudioBuffer<FloatType>& buffer);
 
@@ -133,8 +139,6 @@ private:
 	int delayWritePosition;
 	template <typename FloatType>
 	void delay(AudioBuffer<FloatType>& buffer);
-
-	RingBuffer buffer;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };

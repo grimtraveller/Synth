@@ -76,6 +76,20 @@ private:
     ScopedPointer<ComboBox> waveformCombo;
     ScopedPointer<TextConsole> console;
     ScopedPointer<Slider> attackSlider;
+    ScopedPointer<Slider> delayLengthSlider;
+    ScopedPointer<Label> waveFormLabel;
+    ScopedPointer<Label> attackLabel;
+    ScopedPointer<Label> delayLengthLabel;
+    ScopedPointer<Slider> dryMixSlider;
+    ScopedPointer<Slider> wetMixSlider;
+    ScopedPointer<Label> dryMixLabel;
+    ScopedPointer<Label> wetMixLabel;
+    ScopedPointer<Slider> decaySlider;
+    ScopedPointer<Label> decayLabel;
+    ScopedPointer<Slider> sustainSlider;
+    ScopedPointer<Label> sustainLabel;
+    ScopedPointer<Slider> releaseSlider;
+    ScopedPointer<Label> releaseLabel;
 
 
     //==============================================================================
