@@ -16,39 +16,33 @@ SynthAudioProcessor::SynthAudioProcessor()
 	UserParams[MasterBypass] = 0.0f;//default to not bypassed
 	//repeat for "OtherParams":
 
-	int numberOfVoices = 4;
+	numberOfVoices = 4;
 
 	for (int i = 0; i < numberOfVoices; i++) {
 		currentGains.push_back(0.0f);
 	}
-
+	
 	synths.push_back(&sineSynth);
 	synths.push_back(&triangleSynth);
 	synths.push_back(&squareSynth);
 	synths.push_back(&sawtoothSynth);
-
+	
 	sineSynth.addSound(new SynthSound());
 	for (int i = 0; i < numberOfVoices; i++) {
 		sineSynth.addVoice(new SineVoice());
 	}
-
 	triangleSynth.addSound(new SynthSound());
 	for (int i = 0; i < numberOfVoices; i++) {
 		triangleSynth.addVoice(new TriangleVoice());
 	}
-
 	squareSynth.addSound(new SynthSound());
 	for (int i = 0; i < numberOfVoices; i++) {
 		squareSynth.addVoice(new SquareVoice());
 	}
-
 	sawtoothSynth.addSound(new SynthSound());
 	for (int i = 0; i < numberOfVoices; i++) {
 		sawtoothSynth.addVoice(new SawtoothVoice());
 	}
-
-	// default sound: no sound
-	currentSynthP = nullptr;
 
 	// envelope:
 	attackMS = 0;
@@ -113,7 +107,8 @@ void SynthAudioProcessor::setParameter(int index, float newValue) {
 		attackMS = newValue;
 		break;
 	case delayLengthParam:
-		delayLengthMS = newValue;
+		delayLengthMS = (int)newValue;
+		ringBuffer.resize(delayLengthMS * 48);
 		break;
 	case dryMixParam:
 		dryMix = newValue;
@@ -267,51 +262,71 @@ void SynthAudioProcessor::releaseResources()
     // spare memory, etc.
 }
 
-void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
-{
+void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages) {
+
     // In case we have more outputs than inputs, this code clears any output
     // channels that didn't contain input data, (because these aren't
     // guaranteed to be empty - they may contain garbage).
     // I've added this to avoid people getting screaming feedback
     // when they first compile the plugin, but obviously you don't need to
     // this code if your algorithm already fills all the output channels.
-    for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+	for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i) {
+		buffer.clear(i, 0, buffer.getNumSamples());
+	}
 	
 	if (waveForm >= 0) {
 		// render selected sound:
-		currentSynthP = synths.at(waveForm);
+		Synth* currentSynthP = synths.at(waveForm);
 		currentSynthP->renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-		for (int i = 0; i < currentSynthP->getNumVoices(); i++) {
-			// if voice is playing:
-			if (currentSynthP->getVoice(i)->isVoiceActive()) {
-				// edit envelope:
-				envelope(buffer, i);
+		//buffer.applyGain(1.0);
+		for (int i = 0; i < numberOfVoices; i++) {
+			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(currentSynthP->getVoice(i));
+			if (currentSynthVoice->state == currentSynthVoice->NOTEON) {
+				log("key down");
+				// Attack:
+				if (attackMS > 0) {
+					if (currentGains.at(i) < gain) {
+						attack(currentGains.at(i), buffer);
+						//log(i + ":" + std::to_string(currentGains.at(i)));
+					}
+					else {
+						currentSynthVoice->setState(currentSynthVoice->ON);
+					}
+				}
+				else {
+					currentSynthVoice->setState(currentSynthVoice->ON);
+				}
+			}// if (NOTEON)
+			if (currentSynthVoice->state == currentSynthVoice->ON) {
+
 			}
-			else {
-				currentGains.at(i) = 0.0;
-				// release...
+			if (currentSynthVoice->state == currentSynthVoice->NOTEOFF) {
+				log("key up");
+				// Release:
+				if (releaseMS > 0) {
+					if (currentGains.at(i) > 0) {
+						release(currentGains.at(i), buffer);
+						//log(i + ":" + std::to_string(currentGains.at(i)));
+					}
+					else {
+						currentSynthVoice->setState(currentSynthVoice->OFF);
+					}
+				}
+				else {
+					currentSynthVoice->setState(currentSynthVoice->OFF);
+				}
+			} // if (NOTEOFF)
+			if (currentSynthVoice->state == currentSynthVoice->OFF) {
+				
 			}
-		}
+		}// for (numberOfVoices)
 		// add delay:
-		if (delayLengthMS > 0) {
-			delay(buffer);
-		}
-	}
+		delay(buffer);
+	}// if (waveform >= 0)
 
 }
 
 //==============================================================================
-
-template <typename FloatType>
-void SynthAudioProcessor::envelope(AudioBuffer<FloatType>& buffer, int i) {
-	if (attackMS > 0) {
-		if (currentGains.at(i) < gain) {
-			attack(currentGains.at(i), buffer);
-			//log(i + ":" + std::to_string(currentGains.at(i)));
-		}
-	}// if (attackMS > 0)
-}
 
 template <typename FloatType>
 void SynthAudioProcessor::attack(float& cg, AudioBuffer<FloatType>& buffer) {
@@ -333,14 +348,34 @@ void SynthAudioProcessor::attack(float& cg, AudioBuffer<FloatType>& buffer) {
 }
 
 template <typename FloatType>
-void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
-	ringBuffer.resize(delayLengthMS * 48);
+void SynthAudioProcessor::release(float& cg, AudioBuffer<FloatType>& buffer) {
 	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
-		for (int i = 0; i < buffer.getNumSamples(); i++) {
-			float value = ringBuffer.readWithDelay(delayLengthMS * 48);
-			ringBuffer.write(buffer.getSample(channel, i));
-			value = value * wetMix/100 + buffer.getSample(channel, i) * dryMix/100;
-			buffer.setSample(channel, i, value);
+		// samples = ms * samplerate(48,0)
+		int releaseSamples = releaseMS * 48;
+		// gain-minus per sample:
+		float gainDelta = gain / releaseSamples * buffer.getNumSamples();
+		// apply gain from first to last buffer sample:
+		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg - gainDelta));
+		// add gainDelta:
+		if (cg > 0) {
+			cg = cg - gainDelta;
+		}
+		if (cg < 0) {
+			cg = 0;
+		}
+	}// for (channels)
+}
+
+template <typename FloatType>
+void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
+	if (delayLengthMS > 0) {
+		for (int channel = 0; channel < getNumInputChannels(); ++channel) {
+			for (int i = 0; i < buffer.getNumSamples(); i++) {
+				float value = ringBuffer.readWithDelay(delayLengthMS * 48);
+				ringBuffer.write(buffer.getSample(channel, i));
+				value = value * wetMix / 100 + buffer.getSample(channel, i) * dryMix / 100;
+				buffer.setSample(channel, i, value);
+			}
 		}
 	}
 }

@@ -12,6 +12,7 @@
 #define PLUGINPROCESSOR_H_INCLUDED
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "Synth.h"
 #include "SynthSound.h"
 #include "SineVoice.h"
 #include "TriangleVoice.h"
@@ -118,19 +119,26 @@ private:
 	bool UIUpdateFlag;
 
 	// Waveform:
-	Synthesiser sineSynth;
-	Synthesiser triangleSynth;
-	Synthesiser squareSynth;
-	Synthesiser sawtoothSynth;
-	std::vector<Synthesiser*> synths;
-	Synthesiser* currentSynthP;
+	Synth sineSynth;
+	Synth triangleSynth;
+	Synth squareSynth;
+	Synth sawtoothSynth;
+
+	//SynthVoice sineVoice;
+	//TriangleVoice triangleVoice;
+	//SquareVoice squareVoice;
+	//SawtoothVoice sawtoothVoice;
+
+	std::vector<Synth*> synths;
+
+	int numberOfVoices;
 
 	// Envelope:
 	std::vector<float> currentGains;
 	template <typename FloatType>
-	void envelope(AudioBuffer<FloatType>& buffer, int i);
-	template <typename FloatType>
 	void attack(float& currentGain, AudioBuffer<FloatType>& buffer);
+	template <typename FloatType>
+	void release(float& currentGain, AudioBuffer<FloatType>& buffer);
 
 	// Delay:
 	AudioSampleBuffer delayBuffer;

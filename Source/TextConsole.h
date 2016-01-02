@@ -10,13 +10,15 @@ public:
 	TextConsole() : TextEditor("Console") {
 		setMultiLine(true);
 		setReadOnly(true);
+		index = 0;
 	}
 	void addLine(const String& text) {
+		index++;
 		setCaretPosition(getText().length());
-		insertTextAtCaret(text);
+		insertTextAtCaret(std::to_string(index) + ": " + text);
 	}
 private:
-
+	int index;
 };
 
 #endif//_TEXTCONSOLE_H_

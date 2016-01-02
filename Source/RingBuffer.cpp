@@ -10,8 +10,14 @@ void RingBuffer::resize(int size){
 	buffer.resize(size);
 }
 
+int RingBuffer::getSize() {
+	return this->size;
+}
+
 void RingBuffer::write(float sample){
-	buffer[writeIndex] = sample;
+	if (writeIndex < buffer.size()) {
+		buffer[writeIndex] = sample;
+	}
 	writeIndex++;
 	if (writeIndex == size){
 		writeIndex = 0;
@@ -23,5 +29,10 @@ float RingBuffer::readWithDelay(int delay){
 	if (readIndex < 0){
 		readIndex += size;
 	}
-	return buffer[readIndex];
+	if (readIndex < buffer.size()) {
+		return buffer[readIndex];
+	}
+	else {
+		return buffer[0];
+	}
 }

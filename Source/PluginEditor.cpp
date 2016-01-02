@@ -268,7 +268,7 @@ void SynthAudioProcessorEditor::sliderValueChanged (Slider* sliderThatWasMoved)
     {
         //[UserSliderCode_delayLengthSlider] -- add your slider handling code here..
 		ourProcessor->setParameter(3, delayLengthSlider->getValue());
-		ourProcessor->ringBuffer.resize(ourProcessor->delayLengthMS * 48);
+		// causes delay destruction ???
         //[/UserSliderCode_delayLengthSlider]
     }
     else if (sliderThatWasMoved == dryMixSlider)

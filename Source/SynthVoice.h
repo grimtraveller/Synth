@@ -1,11 +1,11 @@
-#ifndef _SAWTOOTHVOICE_H_
-#define _SAWTOOTHVOICE_H_
+#ifndef _SYNTHVOICE_H_
+#define _SYNTHVOICE_H_
 
 #include "JuceHeader.h"
 
-class SawtoothVoice : public SynthVoice {
+class SynthVoice : public SynthesiserVoice {
 public:
-	SawtoothVoice() : SynthVoice() {
+	SynthVoice() : SynthesiserVoice() {
 		// WinkelDelta auf 0.0?
 		// TailOff = sowas wie Release-Zeit?
 		angleDelta = 0.0;
@@ -78,6 +78,41 @@ public:
 		}
 	}
 
+	enum state {
+		ON,
+		NOTEON,
+		NOTEOFF,
+		OFF
+	};
+	state state;
+
+	bool isSynthVoiceActive() {
+		if (getCurrentlyPlayingNote() >= 0) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	std::string getState() {
+		if (state == NOTEON) {
+			return "NOTEON";
+		}
+		else if (state == NOTEOFF) {
+			return "NOTEOFF";
+		}
+		else {
+			return "OFF";
+		}
+	}
+
+	void setState(enum SynthVoice::state s) {
+		state = s;
+	}
+
+	int index;
+
 private:
 
 	double cyclesPerSecond;
@@ -86,24 +121,13 @@ private:
 
 	template <typename FloatType>
 	void processBlock(AudioBuffer<FloatType>& outputBuffer, int startSample, int numSamples) {
-
+		
 		// was passiert bei angleDelta == 0.0 ? (Knacken)
 		// muss abgefragt werden! (warum?)
 		if (angleDelta != 0.0) {
 
 			// für jeden Sample:
 			while (--numSamples >= 0) {
-
-				float modulo = fmod(index, period);
-
-				FloatType currentSample = static_cast<FloatType> ((modulo / period) * 2 - 1);
-
-				// für jeden Channel:
-				for (int i = outputBuffer.getNumChannels(); --i >= 0;) {
-					// aktuellen Sample zum Buffer hinzufügen:
-					outputBuffer.addSample(i, startSample, currentSample);
-				}
-
 				// aktueller Winkel + WinkelDelta: (ein Schritt weiter im Sinus?)
 				//currentAngle += angleDelta;
 				// ein Schritt weiter im Sample?
@@ -116,8 +140,6 @@ private:
 	}// void processsBlock()
 
 	double currentAngle, angleDelta, level, tailOff;
-	int index;
 };
 
-
-#endif//_SAWTOOTHVOICE_H_
+#endif//_SYNTHVOICE_H_

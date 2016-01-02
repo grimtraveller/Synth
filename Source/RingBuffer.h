@@ -11,6 +11,7 @@ public:
 	void write(float sample);
 	float readWithDelay(int delay);
 	void resize(int size);
+	int getSize();
 private:
 	std::vector<float> buffer;
 	int writeIndex;

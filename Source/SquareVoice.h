@@ -3,14 +3,16 @@
 
 #include "JuceHeader.h"
 
-class SquareVoice : public SynthesiserVoice {
+class SquareVoice : public SynthVoice {
 public:
-	SquareVoice()
+	SquareVoice() : SynthVoice()
+	{
 		// WinkelDelta auf 0.0?
 		// TailOff = sowas wie Release-Zeit?
-		: angleDelta(0.0),
-		tailOff(0.0)
-	{}
+		angleDelta = 0.0;
+		tailOff = 0.0;
+		state = OFF;
+	}
 
 	bool canPlaySound(SynthesiserSound* sound) override {
 		//return dynamic_cast<SineSound*> (sound) != nullptr;
@@ -20,6 +22,8 @@ public:
 	void startNote(int midiNoteNumber, float velocity,
 		SynthesiserSound* /*sound*/,
 		int /*currentPitchWheelPosition*/) override {
+
+		state = NOTEON;
 
 		// entfernen verursacht Knacken:
 		currentAngle = 0.0;
@@ -43,9 +47,10 @@ public:
 	}
 
 	void stopNote(float /*velocity*/, bool allowTailOff) override {
-		clearCurrentNote();
-		angleDelta = 0.0;
-		index = 0;
+		//clearCurrentNote();
+		//angleDelta = 0.0;
+		//index = 0;
+		state = NOTEOFF;
 	}
 
 	void pitchWheelMoved(int /*newValue*/) override {
@@ -57,11 +62,21 @@ public:
 	}
 
 	void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override {
-		processBlock(outputBuffer, startSample, numSamples);
+		if (state == OFF) {
+			clearCurrentNote();
+		}
+		else {
+			processBlock(outputBuffer, startSample, numSamples);
+		}
 	}
 
 	void renderNextBlock(AudioBuffer<double>& outputBuffer, int startSample, int numSamples) override {
-		processBlock(outputBuffer, startSample, numSamples);
+		if (state == OFF) {
+			clearCurrentNote();
+		}
+		else {
+			processBlock(outputBuffer, startSample, numSamples);
+		}
 	}
 
 private:
