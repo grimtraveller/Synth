@@ -321,7 +321,7 @@ void SynthAudioProcessorEditor::timerCallback()
 	waveformCombo->setSelectedItemIndex(ourProcessor->waveForm);
 	attackSlider->setValue(ourProcessor->attackMS);
 	decaySlider->setValue(ourProcessor->decayMS);
-	sustainSlider->setValue(ourProcessor->sustain);
+	sustainSlider->setValue(ourProcessor->sustain * 100);
 	releaseSlider->setValue(ourProcessor->releaseMS);
 	// delay slider:
 	delayLengthSlider->setValue(ourProcessor->delayLengthMS);

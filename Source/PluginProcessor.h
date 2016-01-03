@@ -98,7 +98,6 @@ public:
 	float sustain;
 	int releaseMS;
 	float gain;
-	float currentGain;
 
 	// Delay:
 	int delayLengthMS;
@@ -120,9 +119,10 @@ private:
 	int numberOfVoices;
 
 	// Envelope:
-	std::vector<float> currentGains;
 	template <typename FloatType>
 	void attack(float& currentGain, AudioBuffer<FloatType>& buffer);
+	template <typename FloatType>
+	void decay(float& currentGain, AudioBuffer<FloatType>& buffer);
 	template <typename FloatType>
 	void release(float& currentGain, AudioBuffer<FloatType>& buffer);
 

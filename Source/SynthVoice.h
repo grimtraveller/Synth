@@ -9,7 +9,11 @@ public:
 	enum state {
 		ON,
 		NOTEON,
+		ATTACK,
+		DECAY,
+		SUSTAIN,
 		NOTEOFF,
+		RELEASE,
 		OFF
 	};
 
@@ -38,6 +42,7 @@ public:
 		//level = velocity * 0.15;
 		//tailOff = 0.0;
 		index = 0;
+		gain = 0;
 
 		// Cycles per second = Frequenz in Hertz
 		// Cycle = ein Sinuswellendurchgang (= 2 x Pi)
@@ -103,11 +108,15 @@ public:
 		this->currentState = currentState;
 	}
 
+	float* getGain() {
+		return &gain;
+	}
+
 private:
 
 	double cyclesPerSecond, cyclesPerSample;
 	double currentAngle, angleDelta, level, tailOff;
-	float period, modulo;
+	float period, modulo, gain;
 	int index, waveForm;
 	state currentState;
 
