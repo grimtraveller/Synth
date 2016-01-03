@@ -16,7 +16,7 @@ SynthAudioProcessor::SynthAudioProcessor()
 	UserParams[MasterBypass] = 0.0f;//default to not bypassed
 	//repeat for "OtherParams":
 
-	numberOfVoices = 4;
+	numberOfVoices = 8;
 	
 	synth.addSound(new SynthSound());
 	for (int i = 0; i < numberOfVoices; i++) {
@@ -35,8 +35,10 @@ SynthAudioProcessor::SynthAudioProcessor()
 
 	// delay:
 	delayLengthMS = 0;
-	dryMix = 0;
+	dryMix = 1.0;
 	wetMix = 0;
+
+	setParameter(1, 0);
 
 }
 
@@ -89,10 +91,10 @@ void SynthAudioProcessor::setParameter(int index, float newValue) {
 		ringBuffer.resize(delayLengthMS * 48);
 		break;
 	case dryMixParam:
-		dryMix = newValue;
+		dryMix = newValue / 100;
 		break;
 	case wetMixParam:
-		wetMix = newValue;
+		wetMix = newValue / 100;
 		break;
 	case decayParam:
 		decayMS = newValue;
@@ -387,7 +389,7 @@ void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
 			for (int i = 0; i < buffer.getNumSamples(); i++) {
 				float value = ringBuffer.readWithDelay(delayLengthMS * 48);
 				ringBuffer.write(buffer.getSample(channel, i));
-				value = value * wetMix / 100 + buffer.getSample(channel, i) * dryMix / 100;
+				value = value * wetMix + buffer.getSample(channel, i) * dryMix;
 				buffer.setSample(channel, i, value);
 			}
 		} // for (channels)

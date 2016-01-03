@@ -66,6 +66,13 @@ public:
     void comboBoxChanged (ComboBox* comboBoxThatHasChanged);
     void sliderValueChanged (Slider* sliderThatWasMoved);
 
+    // Binary resources:
+    static const char* synthKopie_jpg;
+    static const int synthKopie_jpgSize;
+    static const char* synthKopie_jpg2;
+    static const int synthKopie_jpg2Size;
+
+
 private:
     //[UserVariables]   -- You can add your own custom variables in this section.
     //[/UserVariables]
@@ -75,7 +82,6 @@ private:
     ScopedPointer<TextConsole> console;
     ScopedPointer<Slider> attackSlider;
     ScopedPointer<Slider> delayLengthSlider;
-    ScopedPointer<Label> waveFormLabel;
     ScopedPointer<Label> attackLabel;
     ScopedPointer<Label> delayLengthLabel;
     ScopedPointer<Slider> dryMixSlider;
@@ -88,6 +94,7 @@ private:
     ScopedPointer<Label> sustainLabel;
     ScopedPointer<Slider> releaseSlider;
     ScopedPointer<Label> releaseLabel;
+    Image cachedImage_synthKopie_jpg2_1;
 
 
     //==============================================================================
