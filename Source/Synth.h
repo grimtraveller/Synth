@@ -8,23 +8,20 @@
 class Synth : public Synthesiser {
 public:
 	Synth() : Synthesiser() {
-
+		waveForm = -1;
 	}
-
-	void addSynthVoice(SynthVoice* synthVoice) {
-		voices.push_back(synthVoice);
+	int getWaveForm() {
+		return waveForm;
 	}
-
-	std::vector<SynthVoice*>* getSynthVoices() {
-		return &voices;
+	void setWaveForm(int waveForm) {
+		this->waveForm = waveForm;
+		for (int i = 0; i < voices.size(); i++) {
+			SynthVoice* voice = dynamic_cast<SynthVoice*>(voices[i]);
+			voice->setWaveForm(waveForm);
+		}
 	}
-
-	SynthVoice* getSynthVoice(int index) {
-		return voices.at(index);
-	}
-
 private:
-	std::vector<SynthVoice*> voices;
+	int waveForm;
 };
 
 #endif//_SYNTH_H_

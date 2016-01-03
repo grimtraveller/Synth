@@ -5,12 +5,21 @@
 
 class SynthVoice : public SynthesiserVoice {
 public:
+
+	enum state {
+		ON,
+		NOTEON,
+		NOTEOFF,
+		OFF
+	};
+
 	SynthVoice() : SynthesiserVoice() {
 		// WinkelDelta auf 0.0?
 		// TailOff = sowas wie Release-Zeit?
 		angleDelta = 0.0;
-		tailOff = 0.0;
-		state = OFF;
+		//tailOff = 0.0;
+		currentState = OFF;
+		waveForm = -1;
 	}
 
 	bool canPlaySound(SynthesiserSound* sound) override {
@@ -22,12 +31,12 @@ public:
 		SynthesiserSound* /*sound*/,
 		int /*currentPitchWheelPosition*/) override {
 
-		state = NOTEON;
+		currentState = NOTEON;
 
 		// entfernen verursacht Knacken:
 		currentAngle = 0.0;
-		level = velocity * 0.15;
-		tailOff = 0.0;
+		//level = velocity * 0.15;
+		//tailOff = 0.0;
 		index = 0;
 
 		// Cycles per second = Frequenz in Hertz
@@ -49,7 +58,7 @@ public:
 		//clearCurrentNote();
 		//angleDelta = 0.0;
 		//index = 0;
-		state = NOTEOFF;
+		currentState = NOTEOFF;
 	}
 
 	void pitchWheelMoved(int /*newValue*/) override {
@@ -61,7 +70,7 @@ public:
 	}
 
 	void renderNextBlock(AudioBuffer<float>& outputBuffer, int startSample, int numSamples) override {
-		if (state == OFF) {
+		if (currentState == OFF) {
 			clearCurrentNote();
 		}
 		else {
@@ -70,7 +79,7 @@ public:
 	}
 
 	void renderNextBlock(AudioBuffer<double>& outputBuffer, int startSample, int numSamples) override {
-		if (state == OFF) {
+		if (currentState == OFF) {
 			clearCurrentNote();
 		}
 		else {
@@ -78,46 +87,29 @@ public:
 		}
 	}
 
-	enum state {
-		ON,
-		NOTEON,
-		NOTEOFF,
-		OFF
-	};
-	state state;
-
-	bool isSynthVoiceActive() {
-		if (getCurrentlyPlayingNote() >= 0) {
-			return true;
-		}
-		else {
-			return false;
-		}
+	int getWaveForm() {
+		return waveForm;
 	}
 
-	std::string getState() {
-		if (state == NOTEON) {
-			return "NOTEON";
-		}
-		else if (state == NOTEOFF) {
-			return "NOTEOFF";
-		}
-		else {
-			return "OFF";
-		}
+	void setWaveForm(int waveForm) {
+		this->waveForm = waveForm;
 	}
 
-	void setState(enum SynthVoice::state s) {
-		state = s;
+	state getState() {
+		return currentState;
 	}
 
-	int index;
+	void setState(state currentState) {
+		this->currentState = currentState;
+	}
 
 private:
 
-	double cyclesPerSecond;
-	double cyclesPerSample;
-	float period;
+	double cyclesPerSecond, cyclesPerSample;
+	double currentAngle, angleDelta, level, tailOff;
+	float period, modulo;
+	int index, waveForm;
+	state currentState;
 
 	template <typename FloatType>
 	void processBlock(AudioBuffer<FloatType>& outputBuffer, int startSample, int numSamples) {
@@ -128,6 +120,38 @@ private:
 
 			// für jeden Sample:
 			while (--numSamples >= 0) {
+				FloatType currentSample;
+				if (waveForm == 0) {
+					currentSample = static_cast<FloatType> (std::sin(2 * double_Pi * index * cyclesPerSecond / getSampleRate()));
+				}
+				else if (waveForm == 1) {
+					float modulo = fmod(index, period);
+					currentSample = static_cast<FloatType> ((modulo / period) * 4);
+					if (currentSample < 2){
+						currentSample = (currentSample - 1);
+					}
+					else{
+						currentSample = (1 + 2 - currentSample);
+					}
+				}
+				else if (waveForm == 2) {
+					currentSample = static_cast<FloatType> (std::sin(2 * double_Pi * index * cyclesPerSecond / getSampleRate()));
+					if (currentSample > 0) {
+						currentSample = 1;
+					}
+					else {
+						currentSample = 0;
+					}
+				}
+				else if (waveForm == 3) {
+					modulo = fmod(index, period);
+					currentSample = static_cast<FloatType> ((modulo / period) * 2 - 1);
+				}
+				// für jeden Channel:
+				for (int i = outputBuffer.getNumChannels(); --i >= 0;) {
+					// aktuellen Sample zum Buffer hinzufügen:
+					outputBuffer.addSample(i, startSample, currentSample);
+				}
 				// aktueller Winkel + WinkelDelta: (ein Schritt weiter im Sinus?)
 				//currentAngle += angleDelta;
 				// ein Schritt weiter im Sample?
@@ -139,7 +163,6 @@ private:
 
 	}// void processsBlock()
 
-	double currentAngle, angleDelta, level, tailOff;
 };
 
 #endif//_SYNTHVOICE_H_

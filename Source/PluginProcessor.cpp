@@ -22,26 +22,9 @@ SynthAudioProcessor::SynthAudioProcessor()
 		currentGains.push_back(0.0f);
 	}
 	
-	synths.push_back(&sineSynth);
-	synths.push_back(&triangleSynth);
-	synths.push_back(&squareSynth);
-	synths.push_back(&sawtoothSynth);
-	
-	sineSynth.addSound(new SynthSound());
+	synth.addSound(new SynthSound());
 	for (int i = 0; i < numberOfVoices; i++) {
-		sineSynth.addVoice(new SineVoice());
-	}
-	triangleSynth.addSound(new SynthSound());
-	for (int i = 0; i < numberOfVoices; i++) {
-		triangleSynth.addVoice(new TriangleVoice());
-	}
-	squareSynth.addSound(new SynthSound());
-	for (int i = 0; i < numberOfVoices; i++) {
-		squareSynth.addVoice(new SquareVoice());
-	}
-	sawtoothSynth.addSound(new SynthSound());
-	for (int i = 0; i < numberOfVoices; i++) {
-		sawtoothSynth.addVoice(new SawtoothVoice());
+		synth.addVoice(new SynthVoice());
 	}
 
 	// envelope:
@@ -276,12 +259,12 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 	
 	if (waveForm >= 0) {
 		// render selected sound:
-		Synth* currentSynthP = synths.at(waveForm);
-		currentSynthP->renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-		//buffer.applyGain(1.0);
+		synth.setWaveForm(waveForm);
+		synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 		for (int i = 0; i < numberOfVoices; i++) {
-			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(currentSynthP->getVoice(i));
-			if (currentSynthVoice->state == currentSynthVoice->NOTEON) {
+			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
+			// if (NOTEON)
+			if (currentSynthVoice->getState() == currentSynthVoice->NOTEON) {
 				log("key down");
 				// Attack:
 				if (attackMS > 0) {
@@ -297,10 +280,12 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 					currentSynthVoice->setState(currentSynthVoice->ON);
 				}
 			}// if (NOTEON)
-			if (currentSynthVoice->state == currentSynthVoice->ON) {
+			// if (ON)
+			if (currentSynthVoice->getState() == currentSynthVoice->ON) {
 
-			}
-			if (currentSynthVoice->state == currentSynthVoice->NOTEOFF) {
+			} // if (ON)
+			// if (NOTEOFF)
+			if (currentSynthVoice->getState() == currentSynthVoice->NOTEOFF) {
 				log("key up");
 				// Release:
 				if (releaseMS > 0) {
@@ -316,9 +301,10 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 					currentSynthVoice->setState(currentSynthVoice->OFF);
 				}
 			} // if (NOTEOFF)
-			if (currentSynthVoice->state == currentSynthVoice->OFF) {
+			// if (OFF)
+			if (currentSynthVoice->getState() == currentSynthVoice->OFF) {
 				
-			}
+			} // if (OFF)
 		}// for (numberOfVoices)
 		// add delay:
 		delay(buffer);
@@ -376,7 +362,7 @@ void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
 				value = value * wetMix / 100 + buffer.getSample(channel, i) * dryMix / 100;
 				buffer.setSample(channel, i, value);
 			}
-		}
+		} // for (channels)
 	}
 }
 

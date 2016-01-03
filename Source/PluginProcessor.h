@@ -14,10 +14,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Synth.h"
 #include "SynthSound.h"
-#include "SineVoice.h"
-#include "TriangleVoice.h"
-#include "SquareVoice.h"
-#include "SawtoothVoice.h"
 #include "RingBuffer.h"
 #include <string>
 #include <math.h>
@@ -119,17 +115,7 @@ private:
 	bool UIUpdateFlag;
 
 	// Waveform:
-	Synth sineSynth;
-	Synth triangleSynth;
-	Synth squareSynth;
-	Synth sawtoothSynth;
-
-	//SynthVoice sineVoice;
-	//TriangleVoice triangleVoice;
-	//SquareVoice squareVoice;
-	//SawtoothVoice sawtoothVoice;
-
-	std::vector<Synth*> synths;
+	Synth synth;
 
 	int numberOfVoices;
 
