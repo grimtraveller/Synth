@@ -95,7 +95,7 @@ public:
 	// Envelope:
 	int attackMS;
 	int decayMS;
-	float sustain;
+	float sustainLevel;
 	int releaseMS;
 	float gain;
 
@@ -123,6 +123,8 @@ private:
 	void attack(float& currentGain, AudioBuffer<FloatType>& buffer);
 	template <typename FloatType>
 	void decay(float& currentGain, AudioBuffer<FloatType>& buffer);
+	template <typename FloatType>
+	void sustain(float& currentGain, AudioBuffer<FloatType>& buffer);
 	template <typename FloatType>
 	void release(float& currentGain, AudioBuffer<FloatType>& buffer);
 

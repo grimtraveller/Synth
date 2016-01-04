@@ -7,9 +7,9 @@ class SynthVoice : public SynthesiserVoice {
 public:
 
 	enum state {
-		ON,
 		NOTEON,
 		ATTACK,
+		ON,
 		DECAY,
 		SUSTAIN,
 		NOTEOFF,
@@ -21,8 +21,9 @@ public:
 		// WinkelDelta auf 0.0?
 		// TailOff = sowas wie Release-Zeit?
 		angleDelta = 0.0;
-		//tailOff = 0.0;
+		tailOff = 1.0;
 		currentState = OFF;
+		gain = 0.0;
 		waveForm = -1;
 	}
 
@@ -40,7 +41,7 @@ public:
 		// entfernen verursacht Knacken:
 		currentAngle = 0.0;
 		//level = velocity * 0.15;
-		//tailOff = 0.0;
+		tailOff = 1.0;
 		index = 0;
 		gain = 0;
 
@@ -110,6 +111,10 @@ public:
 
 	float* getGain() {
 		return &gain;
+	}
+
+	void setGain(float gain) {
+		this->gain = gain;
 	}
 
 private:

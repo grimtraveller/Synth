@@ -26,7 +26,7 @@ SynthAudioProcessor::SynthAudioProcessor()
 	// envelope:
 	attackMS = 0;
 	decayMS = 0;
-	sustain = 1.0;
+	sustainLevel = 1.0;
 	releaseMS = 0;
 	gain = 1.0;
 
@@ -70,7 +70,7 @@ float SynthAudioProcessor::getParameter(int index) {
 	case decayParam:
 		return decayMS;
 	case sustainParam:
-		return sustain;
+		return sustainLevel;
 	case releaseParam:
 		return releaseMS;
 	default:
@@ -100,7 +100,7 @@ void SynthAudioProcessor::setParameter(int index, float newValue) {
 		decayMS = newValue;
 		break;
 	case sustainParam:
-		sustain = newValue / 100;
+		sustainLevel = newValue / 100;
 		break;
 	case releaseParam:
 		releaseMS = newValue;
@@ -263,37 +263,41 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 			if (currentSynthVoice->getState() == currentSynthVoice->NOTEON) {
 				//log("key down");
 				if (attackMS > 0) {
+					currentSynthVoice->setGain(0.0);
 					currentSynthVoice->setState(currentSynthVoice->ATTACK);
 				}
-				else if (decayMS > 0) {
+				if (attackMS == 0 && decayMS > 0) {
+					currentSynthVoice->setGain(gain);
 					currentSynthVoice->setState(currentSynthVoice->DECAY);
 				}
-				else {
+				if (attackMS == 0 && decayMS == 0) {
+					currentSynthVoice->setGain(sustainLevel);
 					currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
 				}
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->ATTACK) {
-				if (*currentSynthVoice->getGain() != gain) {
-					attack(*currentSynthVoice->getGain(), buffer);
-					log("A:" + std::to_string(*currentSynthVoice->getGain()));
-				}
-				else {
+				attack(*currentSynthVoice->getGain(), buffer);
+				log("A:" + std::to_string(*currentSynthVoice->getGain()));
+				if (*currentSynthVoice->getGain() == gain) {
 					if (decayMS > 0) {
 						currentSynthVoice->setState(currentSynthVoice->DECAY);
+					}
+					else {
+						currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
 					}
 				}
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->DECAY) {
-				if (*currentSynthVoice->getGain() != sustain) {
 				decay(*currentSynthVoice->getGain(), buffer);
 				log("D: " + std::to_string(*currentSynthVoice->getGain()));
-				}
-				else {
+				if (*currentSynthVoice->getGain() == sustainLevel) {
 					currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
 				}
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->SUSTAIN) {
-
+				currentSynthVoice->setGain(sustainLevel);
+				sustain(*currentSynthVoice->getGain(), buffer);
+				log("S: " + std::to_string(*currentSynthVoice->getGain()));
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->NOTEOFF) {
 				//log("key up");
@@ -305,22 +309,22 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 				}
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->RELEASE) {
-				if (*currentSynthVoice->getGain() != 0) {
-					release(*currentSynthVoice->getGain(), buffer);
-					log("R: " + std::to_string(*currentSynthVoice->getGain()));
-				}
-				else {
+				release(*currentSynthVoice->getGain(), buffer);
+				log("R: " + std::to_string(*currentSynthVoice->getGain()));
+				if (*currentSynthVoice->getGain() == 0.0) {
 					currentSynthVoice->setState(currentSynthVoice->OFF);
 				}
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->OFF) {
-				
+				currentSynthVoice->setGain(0.0);
+			}
+			if (currentSynthVoice->isVoiceActive()) {
+				//log(std::to_string(currentSynthVoice->getState()));
 			}
 		}// for (numberOfVoices)
 		// add delay:
 		delay(buffer);
 	}// if (waveform >= 0)
-
 }
 
 //==============================================================================
@@ -333,12 +337,12 @@ void SynthAudioProcessor::attack(float& cg, AudioBuffer<FloatType>& buffer) {
 		// gain-plus per sample:
 		float gainDelta = gain / attackSamples * buffer.getNumSamples();
 		// apply gain from first to last buffer sample:
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg + gainDelta));
-		// add gainDelta:
-		if (cg < gain) {
-			cg = cg + gainDelta;
+		if ((cg + gainDelta) <= gain) {
+			buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg + gainDelta));
+			cg += gainDelta;
 		}
-		if (cg > gain) {
+		else if ((cg + gainDelta) > gain) {
+			buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, gain);
 			cg = gain;
 		}
 	}// for (channels)
@@ -352,14 +356,23 @@ void SynthAudioProcessor::decay(float& cg, AudioBuffer<FloatType>& buffer) {
 		// gain-minus per sample:
 		float gainDelta = gain / decaySamples * buffer.getNumSamples();
 		// apply gain from first to last buffer sample:
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg - gainDelta));
-		// add gainDelta:
-		if (cg > sustain) {
-			cg = cg - gainDelta;
+		if ((cg - gainDelta) >= sustainLevel) {
+			buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg - gainDelta));
+			cg -= gainDelta;
 		}
-		if (cg < sustain) {
-			cg = sustain;
+		else if ((cg - gainDelta) < sustainLevel) {
+			buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, sustainLevel);
+			cg = sustainLevel;
 		}
+	}// for (channels)
+}
+
+template <typename FloatType>
+void SynthAudioProcessor::sustain(float& cg, AudioBuffer<FloatType>& buffer) {
+	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
+		cg = sustainLevel;
+		// apply gain from first to last buffer sample:
+		buffer.applyGain(channel, 0, buffer.getNumSamples(), cg);
 	}// for (channels)
 }
 
@@ -371,13 +384,13 @@ void SynthAudioProcessor::release(float& cg, AudioBuffer<FloatType>& buffer) {
 		// gain-minus per sample:
 		float gainDelta = gain / releaseSamples * buffer.getNumSamples();
 		// apply gain from first to last buffer sample:
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg - gainDelta));
-		// add gainDelta:
-		if (cg > 0) {
-			cg = cg - gainDelta;
+		if ((cg - gainDelta) > 0) {
+			buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, (cg - gainDelta));
+			cg -= gainDelta;
 		}
-		if (cg < 0) {
-			cg = 0;
+		else if ((cg - gainDelta) <= 0) {
+			buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, 0.0);
+			cg = 0.0;
 		}
 	}// for (channels)
 }

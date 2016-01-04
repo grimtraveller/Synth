@@ -71,6 +71,8 @@ public:
     static const int synthKopie_jpgSize;
     static const char* synthKopie_jpg2;
     static const int synthKopie_jpg2Size;
+    static const char* synthKopie_jpg3;
+    static const int synthKopie_jpg3Size;
 
 
 private:
@@ -94,7 +96,7 @@ private:
     ScopedPointer<Label> sustainLabel;
     ScopedPointer<Slider> releaseSlider;
     ScopedPointer<Label> releaseLabel;
-    Image cachedImage_synthKopie_jpg2_1;
+    Image cachedImage_synthKopie_jpg3_1;
 
 
     //==============================================================================
