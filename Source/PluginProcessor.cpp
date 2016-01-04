@@ -266,13 +266,17 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 					currentSynthVoice->setGain(0.0);
 					currentSynthVoice->setState(currentSynthVoice->ATTACK);
 				}
-				if (attackMS == 0 && decayMS > 0) {
+				if (attackMS == 0 && decayMS > 0 && sustainLevel > 0) {
 					currentSynthVoice->setGain(gain);
 					currentSynthVoice->setState(currentSynthVoice->DECAY);
 				}
-				if (attackMS == 0 && decayMS == 0) {
+				if (attackMS == 0 && decayMS == 0 && sustainLevel > 0) {
 					currentSynthVoice->setGain(sustainLevel);
 					currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
+				}
+				if (attackMS == 0 && decayMS == 0 && sustainLevel == 0) {
+					currentSynthVoice->setGain(gain);
+					currentSynthVoice->setState(currentSynthVoice->RELEASE);
 				}
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->ATTACK) {
@@ -283,7 +287,12 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 						currentSynthVoice->setState(currentSynthVoice->DECAY);
 					}
 					else {
-						currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
+						if (sustainLevel > 0) {
+							currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
+						}
+						else {
+							currentSynthVoice->setState(currentSynthVoice->RELEASE);
+						}
 					}
 				}
 			}
@@ -291,7 +300,12 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 				decay(*currentSynthVoice->getGain(), buffer);
 				log("D: " + std::to_string(*currentSynthVoice->getGain()));
 				if (*currentSynthVoice->getGain() == sustainLevel) {
-					currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
+					if (sustainLevel > 0) {
+						currentSynthVoice->setState(currentSynthVoice->SUSTAIN);
+					}
+					else {
+						currentSynthVoice->setState(currentSynthVoice->RELEASE);
+					}
 				}
 			}
 			if (currentSynthVoice->getState() == currentSynthVoice->SUSTAIN) {
