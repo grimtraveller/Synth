@@ -18,13 +18,15 @@ public:
 	};
 
 	SynthVoice() : SynthesiserVoice() {
-		// WinkelDelta auf 0.0?
-		// TailOff = sowas wie Release-Zeit?
 		angleDelta = 0.0;
-		tailOff = 1.0;
+		tailOff = 0.0;
 		currentState = OFF;
 		gain = 0.0;
-		waveForm = -1;
+		waveForm = 0;
+		attackMS = 0.0;
+		decayMS = 0.0;
+		sustainLevel = 1.0;
+		releaseMS = 0.0;
 	}
 
 	bool canPlaySound(SynthesiserSound* sound) override {
@@ -65,6 +67,7 @@ public:
 		//angleDelta = 0.0;
 		//index = 0;
 		currentState = NOTEOFF;
+		//gain = 0;
 	}
 
 	void pitchWheelMoved(int /*newValue*/) override {
@@ -117,6 +120,134 @@ public:
 		this->gain = gain;
 	}
 
+	int* getAttackMS() {
+		return &attackMS;
+	}
+
+	void setAttackMS(int attackMS) {
+		this->attackMS = attackMS;
+	}
+
+	int* getDecayMS() {
+		return &decayMS;
+	}
+
+	void setDecayMS(int decayMS) {
+		this->decayMS = decayMS;
+	}
+
+	int* getReleaseMS() {
+		return &releaseMS;
+	}
+
+	void setReleaseMS(int releaseMS) {
+		this->releaseMS = releaseMS;
+	}
+
+	float* getSustainLevel() {
+		return &sustainLevel;
+	}
+
+	void setSustainLevel(float sustainLevel) {
+		this->sustainLevel = sustainLevel;
+	}
+
+	void attack() {
+		if (attackMS == 0) {
+			if (sustainLevel > 0) {
+				if (decayMS > 0) {
+					gain = 1.0;
+					currentState = DECAY;
+				}
+				else {
+					currentState = SUSTAIN;
+				}
+			}
+			else {
+				gain = 1.0;
+				currentState = RELEASE;
+			}
+		}
+		else {
+			// samples = ms * samplerate(48,0)
+			int attackSamples = attackMS * 48;
+			// gain-plus per sample:
+			float gainDelta = 1.0 / attackSamples;
+			// apply gain from first to last buffer sample:
+			if (gain < 1.0) {
+				gain = gain + gainDelta;
+			}
+			else if (gain >= 1.0) {
+				gain = 1.0;
+				currentState = DECAY;
+			}
+		}
+	}
+
+	void decay() {
+		if (decayMS == 0) {
+			if (sustainLevel == 0) {
+				gain = 1.0;
+				currentState = RELEASE;
+			}
+			else {
+				gain = sustainLevel;
+				currentState = SUSTAIN;
+			}
+		}
+		else {
+			// samples = ms * samplerate(48,0)
+			int decaySamples = decayMS * 48;
+			// gain-minus per sample:
+			float gainDelta = (1.0 - sustainLevel) / decaySamples;
+			// apply gain from first to last buffer sample:
+			if (gain > sustainLevel) {
+				gain = gain - gainDelta;
+			}
+			else if (gain <= sustainLevel) {
+				gain = sustainLevel;
+				currentState = SUSTAIN;
+			}
+		}
+	}
+
+	void sustain() {
+		if (sustainLevel == 0) {
+			gain = 1.0;
+			currentState = RELEASE;
+		}
+		else {
+			gain = sustainLevel;
+		}
+	}
+
+	void release() {
+		float currentGain;
+		if (releaseMS == 0) {
+			currentState = OFF;
+		}
+		else {
+			if (sustainLevel == 0) {
+				currentGain = 1.0;
+			}
+			else {
+				currentGain = sustainLevel;
+			}
+			// samples = ms * samplerate(48,0)
+			int releaseSamples = releaseMS * 48;
+			// gain-minus per sample:
+			float gainDelta = currentGain / releaseSamples;
+			// apply gain from first to last buffer sample:
+			if (gain > 0) {
+				gain = gain - gainDelta;
+			}
+			if (gain <= 0) {
+				gain = 0.0;
+				currentState = OFF;
+			}
+		}
+	}
+
 private:
 
 	double cyclesPerSecond, cyclesPerSample;
@@ -124,6 +255,10 @@ private:
 	float period, modulo, gain;
 	int index, waveForm;
 	state currentState;
+	// Envelope:
+	int attackMS, decayMS, releaseMS;
+	float sustainLevel;
+	//
 
 	template <typename FloatType>
 	void processBlock(AudioBuffer<FloatType>& outputBuffer, int startSample, int numSamples) {
@@ -161,10 +296,44 @@ private:
 					modulo = fmod(index, period);
 					currentSample = static_cast<FloatType> ((modulo / period) * 2 - 1);
 				}
+
+				// Envelope:
+				if (currentState == NOTEON) {
+					currentState = ATTACK;
+				}
+				if (currentState == ATTACK) {
+					attack();
+				}
+				if (currentState == DECAY) {
+					decay();
+				}
+				if (currentState == SUSTAIN) {
+					sustain();
+				}
+				if (currentState == NOTEOFF) {
+					if (releaseMS > 0) {
+						currentState = RELEASE;
+					}
+					else {
+						currentState = OFF;
+					}
+				}
+				if (currentState == RELEASE) {
+					release();
+				}
+				if (currentState == OFF) {
+					tailOff *= 0.99;
+					gain = gain * tailOff;
+					if (tailOff <= 0.005) {
+						clearCurrentNote();
+						gain = 0.0;
+					}
+				}
+
 				// für jeden Channel:
 				for (int i = outputBuffer.getNumChannels(); --i >= 0;) {
 					// aktuellen Sample zum Buffer hinzufügen:
-					outputBuffer.addSample(i, startSample, currentSample);
+					outputBuffer.addSample(i, startSample, currentSample * gain);
 				}
 				// aktueller Winkel + WinkelDelta: (ein Schritt weiter im Sinus?)
 				//currentAngle += angleDelta;
