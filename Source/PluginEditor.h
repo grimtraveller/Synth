@@ -67,14 +67,8 @@ public:
     void sliderValueChanged (Slider* sliderThatWasMoved);
 
     // Binary resources:
-    static const char* synthKopie_jpg;
-    static const int synthKopie_jpgSize;
-    static const char* synthKopie_jpg2;
-    static const int synthKopie_jpg2Size;
-    static const char* synthKopie_jpg3;
-    static const int synthKopie_jpg3Size;
-    static const char* synthKopie_jpg4;
-    static const int synthKopie_jpg4Size;
+    static const char* synthKopie_jpg5;
+    static const int synthKopie_jpg5Size;
 
 
 private:
@@ -86,20 +80,14 @@ private:
     ScopedPointer<TextConsole> console;
     ScopedPointer<Slider> attackSlider;
     ScopedPointer<Slider> delayLengthSlider;
-    ScopedPointer<Label> attackLabel;
-    ScopedPointer<Label> delayLengthLabel;
     ScopedPointer<Slider> dryMixSlider;
     ScopedPointer<Slider> wetMixSlider;
-    ScopedPointer<Label> dryMixLabel;
-    ScopedPointer<Label> wetMixLabel;
     ScopedPointer<Slider> decaySlider;
-    ScopedPointer<Label> decayLabel;
     ScopedPointer<Slider> sustainSlider;
-    ScopedPointer<Label> sustainLabel;
     ScopedPointer<Slider> releaseSlider;
-    ScopedPointer<Label> releaseLabel;
     ScopedPointer<Label> label;
-    Image cachedImage_synthKopie_jpg4_1;
+    ScopedPointer<ComboBox> filterType;
+    Image cachedImage_synthKopie_jpg5_1;
 
 
     //==============================================================================

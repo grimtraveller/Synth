@@ -81,6 +81,7 @@ public:
 		decayParam = 6,
 		sustainParam = 7,
 		releaseParam = 8,
+		filterTypeParam = 9,
 		totalNumParam
 	};
 
@@ -106,6 +107,9 @@ public:
 	float feedback;
 	RingBuffer ringBuffer;
 
+	// Filter:
+	int filterType;
+
 private:
     //==============================================================================
 	
@@ -118,16 +122,6 @@ private:
 
 	int numberOfVoices;
 
-	// Envelope:
-	template <typename FloatType>
-	void attack(float& currentGain, AudioBuffer<FloatType>& buffer);
-	template <typename FloatType>
-	void decay(float& currentGain, AudioBuffer<FloatType>& buffer);
-	template <typename FloatType>
-	void sustain(float& currentGain, AudioBuffer<FloatType>& buffer);
-	template <typename FloatType>
-	void release(float& currentGain, AudioBuffer<FloatType>& buffer);
-
 	// Delay:
 	AudioSampleBuffer delayBuffer;
 	int delayBufferLength;
@@ -135,6 +129,19 @@ private:
 	int delayWritePosition;
 	template <typename FloatType>
 	void delay(AudioBuffer<FloatType>& buffer);
+
+	// Filter:
+	template <typename FloatType>
+	void filter(AudioBuffer<FloatType>& buffer);
+	template <typename FloatType>
+	FloatType lowPass(AudioBuffer<FloatType>& buffer, int channel, int index);
+	template <typename FloatType>
+	FloatType highPass(AudioBuffer<FloatType>& buffer, int channel, int index);
+	template <typename FloatType>
+	FloatType dcBlocker(AudioBuffer<FloatType>& buffer, int channel, int index);
+	template <typename FloatType>
+	FloatType envelope(AudioBuffer<FloatType>& buffer, int channel, int index);
+	float x1, y1;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };

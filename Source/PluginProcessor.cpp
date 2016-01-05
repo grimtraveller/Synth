@@ -23,6 +23,9 @@ SynthAudioProcessor::SynthAudioProcessor()
 		synth.addVoice(new SynthVoice());
 	}
 
+	// waveform:
+	waveForm = 0;
+
 	// envelope:
 	attackMS = 0;
 	decayMS = 0;
@@ -38,7 +41,10 @@ SynthAudioProcessor::SynthAudioProcessor()
 	dryMix = 1.0;
 	wetMix = 0;
 
-	setParameter(1, 0);
+	// filter:
+	filterType = -1;
+	x1 = 0;
+	y1 = 0;
 
 }
 
@@ -73,6 +79,8 @@ float SynthAudioProcessor::getParameter(int index) {
 		return sustainLevel;
 	case releaseParam:
 		return releaseMS;
+	case filterTypeParam:
+		return filterType;
 	default:
 		return 0.0f;
 	}
@@ -125,6 +133,9 @@ void SynthAudioProcessor::setParameter(int index, float newValue) {
 			currentSynthVoice->setReleaseMS(newValue);
 		}
 		break;
+	case filterTypeParam:
+		filterType = newValue;
+		break;
 	default:
 		UserParams[waveFormParam] = 0;
 		break;
@@ -149,6 +160,8 @@ const String SynthAudioProcessor::getParameterName(int index) {
 		return "Sustain";
 	case releaseParam:
 		return "Release";
+	case filterTypeParam:
+		return "Filter Type";
 	default:
 		return String::empty;
 	}
@@ -172,6 +185,8 @@ const String SynthAudioProcessor::getParameterText(int index) {
 		return String(UserParams[sustainParam]);
 	case releaseParam:
 		return String(UserParams[releaseParam]);
+	case filterTypeParam:
+		return String(UserParams[filterTypeParam]);
 	default:
 		return String::empty;
 	}
@@ -283,83 +298,17 @@ void SynthAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& m
 				log(std::to_string(currentSynthVoice->getState()) + ", gain: " + std::to_string(*currentSynthVoice->getGain()));
 			}
 		}
-
+		// render synth voices:
 		synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-		
 		// add delay:
 		delay(buffer);
+		// add filter:
+		filter(buffer);
+
 	}// if (waveform >= 0)
 }
 
 //==============================================================================
-
-template <typename FloatType>
-void SynthAudioProcessor::attack(float& cg, AudioBuffer<FloatType>& buffer) {
-	// samples = ms * samplerate(48,0)
-	int attackSamples = attackMS * 48;
-	// gain-plus per sample:
-	float gainDelta = gain / attackSamples * buffer.getNumSamples();
-	float newGain;
-	// apply gain from first to last buffer sample:
-	if ((cg + gainDelta) <= gain) {
-		newGain = cg + gainDelta;
-	}
-	else if ((cg + gainDelta) > gain) {
-		newGain = gain;
-	}
-	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, newGain);
-	}// for (channels)
-	cg = newGain;
-}
-
-template <typename FloatType>
-void SynthAudioProcessor::decay(float& cg, AudioBuffer<FloatType>& buffer) {
-	// samples = ms * samplerate(48,0)
-	int decaySamples = decayMS * 48;
-	// gain-minus per sample:
-	float gainDelta = gain / decaySamples * buffer.getNumSamples();
-	float newGain;
-	// apply gain from first to last buffer sample:
-	if ((cg - gainDelta) >= sustainLevel) {
-		newGain = cg - gainDelta;
-	}
-	else if ((cg - gainDelta) < sustainLevel) {
-		newGain = sustainLevel;
-	}
-	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, newGain);
-	}// for (channels)
-	cg = newGain;
-}
-
-template <typename FloatType>
-void SynthAudioProcessor::sustain(float& cg, AudioBuffer<FloatType>& buffer) {
-	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
-		// apply gain from first to last buffer sample:
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, sustainLevel);
-	}// for (channels)
-}
-
-template <typename FloatType>
-void SynthAudioProcessor::release(float& cg, AudioBuffer<FloatType>& buffer) {
-	// samples = ms * samplerate(48,0)
-	int releaseSamples = releaseMS * 48;
-	// gain-minus per sample:
-	float gainDelta = gain / releaseSamples * buffer.getNumSamples();
-	float newGain;
-	// apply gain from first to last buffer sample:
-	if ((cg - gainDelta) > 0) {
-		newGain = cg - gainDelta;
-	}
-	else if ((cg - gainDelta) <= 0) {
-		newGain = 0.0;
-	}
-	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
-		buffer.applyGainRamp(channel, 0, buffer.getNumSamples(), cg, newGain);
-	}// for (channels)
-	cg = newGain;
-}
 
 template <typename FloatType>
 void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
@@ -373,6 +322,71 @@ void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
 			}
 		} // for (channels)
 	}
+}
+
+template <typename FloatType>
+void SynthAudioProcessor::filter(AudioBuffer<FloatType>& buffer) {
+	for (int channel = 0; channel < getNumInputChannels(); ++channel) {
+		for (int i = 0; i < buffer.getNumSamples(); i++) {
+			if (filterType == 0) {
+				buffer.setSample(channel, i, lowPass(buffer, channel, i));
+			}
+			else if (filterType == 1) {
+				buffer.setSample(channel, i, highPass(buffer, channel, i));
+			}
+			else if (filterType == 2) {
+				buffer.setSample(channel, i, dcBlocker(buffer, channel, i));
+			}
+			else if (filterType == 3) {
+				buffer.setSample(channel, i, envelope(buffer, channel, i));
+			}
+		}
+	}
+}
+
+template <typename FloatType>
+FloatType SynthAudioProcessor::lowPass(AudioBuffer<FloatType>& buffer, int channel, int index) {
+	const float alpha = 0.5;
+	FloatType x = buffer.getSample(channel, index);
+	FloatType y = (1 - alpha) * y1 + alpha * x;
+	y1 = y;
+	x1 = x;
+	return y;
+}
+
+template <typename FloatType>
+FloatType SynthAudioProcessor::highPass(AudioBuffer<FloatType>& buffer, int channel, int index) {
+	const float alpha = 0.5;
+	FloatType x = buffer.getSample(channel, index);
+	FloatType y = alpha * (y1 + x - x1);
+	y1 = y;
+	x1 = x;
+	return y;
+}
+
+template <typename FloatType>
+FloatType SynthAudioProcessor::dcBlocker(AudioBuffer<FloatType>& buffer, int channel, int index) {
+	float R = 0.9;
+	FloatType x = buffer.getSample(channel, index);
+	FloatType y = x - x1 + R * y1;
+	y1 = y;
+	x1 = x;
+	return y;
+}
+
+template <typename FloatType>
+FloatType SynthAudioProcessor::envelope(AudioBuffer<FloatType>& buffer, int channel, int index) {
+	// ACHTUNG: die Berechnung von alpha sollte NICHT für jedes Sample neu berechnet werden,
+	// hier nur zur Demonstration!
+	float tau = 1000;		// Abklingzeit im ms
+	float alpha = exp((-2.2 * 1000) / (tau * getSampleRate()));
+	FloatType x = buffer.getSample(channel, index);
+
+	x = abs(x);
+	FloatType y = (1 - alpha) * y1 + alpha * x;
+	y1 = y;
+	x1 = x;
+	return y;
 }
 
 inline float dB2gain(float dB){
