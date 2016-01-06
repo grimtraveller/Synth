@@ -27,6 +27,7 @@ public:
 		decayMS = 0.0;
 		sustainLevel = 1.0;
 		releaseMS = 0.0;
+		noiseMix = 0.0;
 	}
 
 	bool canPlaySound(SynthesiserSound* sound) override {
@@ -94,62 +95,6 @@ public:
 		else {
 			processBlock(outputBuffer, startSample, numSamples);
 		}
-	}
-
-	int getWaveForm() {
-		return waveForm;
-	}
-
-	void setWaveForm(int waveForm) {
-		this->waveForm = waveForm;
-	}
-
-	state getState() {
-		return currentState;
-	}
-
-	void setState(state currentState) {
-		this->currentState = currentState;
-	}
-
-	float* getGain() {
-		return &gain;
-	}
-
-	void setGain(float gain) {
-		this->gain = gain;
-	}
-
-	int* getAttackMS() {
-		return &attackMS;
-	}
-
-	void setAttackMS(int attackMS) {
-		this->attackMS = attackMS;
-	}
-
-	int* getDecayMS() {
-		return &decayMS;
-	}
-
-	void setDecayMS(int decayMS) {
-		this->decayMS = decayMS;
-	}
-
-	int* getReleaseMS() {
-		return &releaseMS;
-	}
-
-	void setReleaseMS(int releaseMS) {
-		this->releaseMS = releaseMS;
-	}
-
-	float* getSustainLevel() {
-		return &sustainLevel;
-	}
-
-	void setSustainLevel(float sustainLevel) {
-		this->sustainLevel = sustainLevel;
 	}
 
 	void attack() {
@@ -248,6 +193,70 @@ public:
 		}
 	}
 
+	int getWaveForm() {
+		return waveForm;
+	}
+
+	void setWaveForm(int waveForm) {
+		this->waveForm = waveForm;
+	}
+
+	state getState() {
+		return currentState;
+	}
+
+	void setState(state currentState) {
+		this->currentState = currentState;
+	}
+
+	float* getGain() {
+		return &gain;
+	}
+
+	void setGain(float gain) {
+		this->gain = gain;
+	}
+
+	int* getAttackMS() {
+		return &attackMS;
+	}
+
+	void setAttackMS(int attackMS) {
+		this->attackMS = attackMS;
+	}
+
+	int* getDecayMS() {
+		return &decayMS;
+	}
+
+	void setDecayMS(int decayMS) {
+		this->decayMS = decayMS;
+	}
+
+	int* getReleaseMS() {
+		return &releaseMS;
+	}
+
+	void setReleaseMS(int releaseMS) {
+		this->releaseMS = releaseMS;
+	}
+
+	float* getSustainLevel() {
+		return &sustainLevel;
+	}
+
+	void setSustainLevel(float sustainLevel) {
+		this->sustainLevel = sustainLevel;
+	}
+
+	float* getNoiseMix() {
+		return &noiseMix;
+	}
+
+	void setNoiseMix(float noiseMix) {
+		this->noiseMix = noiseMix;
+	}
+
 private:
 
 	double cyclesPerSecond, cyclesPerSample;
@@ -257,7 +266,7 @@ private:
 	state currentState;
 	// Envelope:
 	int attackMS, decayMS, releaseMS;
-	float sustainLevel;
+	float sustainLevel, noiseMix;
 	//
 
 	template <typename FloatType>
@@ -295,6 +304,13 @@ private:
 				else if (waveForm == 3) {
 					modulo = fmod(index, period);
 					currentSample = static_cast<FloatType> ((modulo / period) * 2 - 1);
+				}
+
+				// noise:
+				if (noiseMix > 0) {
+					float random = rand();
+					random = 2 * random / RAND_MAX - 1;
+					currentSample = currentSample + random * noiseMix;
 				}
 
 				// Envelope:

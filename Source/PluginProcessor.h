@@ -81,7 +81,7 @@ public:
 		decayParam = 6,
 		sustainParam = 7,
 		releaseParam = 8,
-		filterTypeParam = 9,
+		noiseParam = 9,
 		totalNumParam
 	};
 
@@ -107,8 +107,9 @@ public:
 	float feedback;
 	RingBuffer ringBuffer;
 
-	// Filter:
-	int filterType;
+	// Noise:
+	bool isNoiseActive;
+	float noiseMix;
 
 private:
     //==============================================================================
@@ -129,19 +130,6 @@ private:
 	int delayWritePosition;
 	template <typename FloatType>
 	void delay(AudioBuffer<FloatType>& buffer);
-
-	// Filter:
-	template <typename FloatType>
-	void filter(AudioBuffer<FloatType>& buffer);
-	template <typename FloatType>
-	FloatType lowPass(AudioBuffer<FloatType>& buffer, int channel, int index);
-	template <typename FloatType>
-	FloatType highPass(AudioBuffer<FloatType>& buffer, int channel, int index);
-	template <typename FloatType>
-	FloatType dcBlocker(AudioBuffer<FloatType>& buffer, int channel, int index);
-	template <typename FloatType>
-	FloatType envelope(AudioBuffer<FloatType>& buffer, int channel, int index);
-	float x1, y1;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthAudioProcessor)
 };

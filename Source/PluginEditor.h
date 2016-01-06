@@ -67,8 +67,8 @@ public:
     void sliderValueChanged (Slider* sliderThatWasMoved);
 
     // Binary resources:
-    static const char* synthKopie_jpg5;
-    static const int synthKopie_jpg5Size;
+    static const char* synthKopie_jpg;
+    static const int synthKopie_jpgSize;
 
 
 private:
@@ -85,9 +85,16 @@ private:
     ScopedPointer<Slider> decaySlider;
     ScopedPointer<Slider> sustainSlider;
     ScopedPointer<Slider> releaseSlider;
-    ScopedPointer<Label> label;
-    ScopedPointer<ComboBox> filterType;
-    Image cachedImage_synthKopie_jpg5_1;
+    ScopedPointer<Label> label2;
+    ScopedPointer<Label> label3;
+    ScopedPointer<Label> label4;
+    ScopedPointer<Label> label5;
+    ScopedPointer<Label> label6;
+    ScopedPointer<Label> label7;
+    ScopedPointer<Label> label8;
+    ScopedPointer<Slider> noiseSlider;
+    ScopedPointer<Label> label9;
+    Image cachedImage_synthKopie_jpg_1;
 
 
     //==============================================================================
