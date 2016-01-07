@@ -11,8 +11,8 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-SynthAudioProcessor::SynthAudioProcessor()
-{
+SynthAudioProcessor::SynthAudioProcessor() {
+
 	UserParams[MasterBypass] = 0.0f;//default to not bypassed
 	//repeat for "OtherParams":
 
@@ -26,13 +26,6 @@ SynthAudioProcessor::SynthAudioProcessor()
 	// waveform:
 	waveForm = 0;
 
-	// envelope:
-	attackMS = 0;
-	decayMS = 0;
-	sustainLevel = 1.0;
-	releaseMS = 0;
-	gain = 1.0;
-
 	// console:
 	consoleChanged = false;
 
@@ -41,17 +34,13 @@ SynthAudioProcessor::SynthAudioProcessor()
 	dryMix = 1.0;
 	wetMix = 0.5;
 
-	// noise:
-	noiseMix = 0.0;
-
 }
 
 SynthAudioProcessor::~SynthAudioProcessor() {
 }
 
 //==============================================================================
-const String SynthAudioProcessor::getName() const
-{
+const String SynthAudioProcessor::getName() const {
     return JucePlugin_Name;
 }
 
@@ -63,20 +52,12 @@ float SynthAudioProcessor::getParameter(int index) {
 	switch (index) {
 	case waveFormParam:
 		return waveForm;
-	case attackParam:
-		return attackMS;
 	case delayLengthParam:
 		return delayLengthMS;
 	case dryMixParam:
 		return dryMix;
 	case wetMixParam:
 		return wetMix;
-	case decayParam:
-		return decayMS;
-	case sustainParam:
-		return sustainLevel;
-	case releaseParam:
-		return releaseMS;
 	default:
 		return 0.0f;
 	}
@@ -84,92 +65,98 @@ float SynthAudioProcessor::getParameter(int index) {
 
 void SynthAudioProcessor::setParameter(int index, float newValue) {
 	switch (index) {
-	case waveFormParam:
-		waveForm = newValue;
-		for (int i = 0; i < numberOfVoices; i++) {
-			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
-			currentSynthVoice->setWaveForm(newValue);
-		}
-		break;
-	case attackParam:
-		attackMS = newValue;
-		for (int i = 0; i < numberOfVoices; i++) {
-			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
-			currentSynthVoice->setAttackMS(newValue);
-		}
-		break;
-	case delayLengthParam:
-		delayLengthMS = newValue;
-		if (newValue > 0) {
-			int newSize = int(newValue * 48);
-			ringBuffer.resize(newSize);
-		}
-		break;
-	case dryMixParam:
-		if (dryMix > 0) {
-			dryMix = newValue / 100;
-		}
-		break;
-	case wetMixParam:
-		if (wetMix > 0) {
-			wetMix = newValue / 100;
-		}
-		break;
-	case decayParam:
-		decayMS = newValue;
-		for (int i = 0; i < numberOfVoices; i++) {
-			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
-			currentSynthVoice->setDecayMS(newValue);
-		}
-		break;
-	case sustainParam:
-		if (sustainLevel > 0) {
-			sustainLevel = newValue / 100;
-		}
-		for (int i = 0; i < numberOfVoices; i++) {
-			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
-			currentSynthVoice->setSustainLevel(newValue / 100);
-		}
-		break;
-	case releaseParam:
-		releaseMS = newValue;
-		for (int i = 0; i < numberOfVoices; i++) {
-			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
-			currentSynthVoice->setReleaseMS(newValue);
-		}
-		break;
-	case noiseParam:
-		noiseMix = newValue / 100;
-		for (int i = 0; i < numberOfVoices; i++) {
-			SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
-			currentSynthVoice->setNoiseMix(newValue / 100);
-		}
-	default:
-		UserParams[waveFormParam] = 0;
-		break;
+		case waveFormParam:
+			waveForm = newValue;
+			for (int i = 0; i < numberOfVoices; i++) {
+				SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
+				currentSynthVoice->setWaveForm(newValue);
+			}
+			break;
+		case attackParam:
+			for (int i = 0; i < numberOfVoices; i++) {
+				SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
+				currentSynthVoice->setAttackMS(newValue);
+			}
+			break;
+		case delayLengthParam:
+			delayLengthMS = newValue;
+			if (newValue > 0) {
+				int newSize = int(newValue * 48);
+				ringBuffer.resize(newSize);
+			}
+			break;
+		case dryMixParam:
+			if (newValue > 0) {
+				dryMix = newValue / 100;
+			}
+			else {
+				dryMix = 0;
+			}
+			break;
+		case wetMixParam:
+			if (newValue > 0) {
+				wetMix = newValue / 100;
+			}
+			else {
+				wetMix = 0;
+			}
+			break;
+		case decayParam:
+			for (int i = 0; i < numberOfVoices; i++) {
+				SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
+				currentSynthVoice->setDecayMS(newValue);
+			}
+			break;
+		case sustainParam:
+			if (newValue > 0) {
+				newValue = newValue / 100;
+			}
+			for (int i = 0; i < numberOfVoices; i++) {
+				SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
+				currentSynthVoice->setSustainLevel(newValue);
+			}
+			break;
+		case releaseParam:
+			for (int i = 0; i < numberOfVoices; i++) {
+				SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
+				currentSynthVoice->setReleaseMS(newValue);
+			}
+			break;
+		case noiseParam:
+			if (newValue > 0) {
+				newValue = newValue / 100;
+			}
+			for (int i = 0; i < numberOfVoices; i++) {
+				SynthVoice* currentSynthVoice = dynamic_cast<SynthVoice*>(synth.getVoice(i));
+				currentSynthVoice->setNoiseMix(newValue);
+			}
+			break;
+		default:
+			UserParams[waveFormParam] = 0;
+			break;
 	}
 }
 
 const String SynthAudioProcessor::getParameterName(int index) {
 	switch (index) {
-	case waveFormParam:
-		return "WaveForm";
-	case attackParam:
-		return "Attack";
-	case delayLengthParam:
-		return "Delay Length";
-	case dryMixParam:
-		return "Dry Mix";
-	case wetMixParam:
-		return "Wet Mix";
-	case decayParam:
-		return "Decay";
-	case sustainParam:
-		return "Sustain";
-	case releaseParam:
-		return "Release";
-	default:
-		return String::empty;
+		case waveFormParam:
+			return "WaveForm";
+		case attackParam:
+			return "Attack";
+		case delayLengthParam:
+			return "Delay Length";
+		case dryMixParam:
+			return "Dry Mix";
+		case wetMixParam:
+			return "Wet Mix";
+		case decayParam:
+			return "Decay";
+		case sustainParam:
+			return "Sustain";
+		case releaseParam:
+			return "Release";
+		case noiseParam:
+			return "Noise Mix";
 	}
 }
 
@@ -196,28 +183,23 @@ const String SynthAudioProcessor::getParameterText(int index) {
 	}
 }
 
-const String SynthAudioProcessor::getInputChannelName (int channelIndex) const
-{
+const String SynthAudioProcessor::getInputChannelName (int channelIndex) const {
     return String (channelIndex + 1);
 }
 
-const String SynthAudioProcessor::getOutputChannelName (int channelIndex) const
-{
+const String SynthAudioProcessor::getOutputChannelName (int channelIndex) const {
     return String (channelIndex + 1);
 }
 
-bool SynthAudioProcessor::isInputChannelStereoPair (int index) const
-{
+bool SynthAudioProcessor::isInputChannelStereoPair (int index) const {
     return true;
 }
 
-bool SynthAudioProcessor::isOutputChannelStereoPair (int index) const
-{
+bool SynthAudioProcessor::isOutputChannelStereoPair (int index) const {
     return true;
 }
 
-bool SynthAudioProcessor::acceptsMidi() const
-{
+bool SynthAudioProcessor::acceptsMidi() const {
    #if JucePlugin_WantsMidiInput
     return true;
    #else
@@ -225,8 +207,7 @@ bool SynthAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool SynthAudioProcessor::producesMidi() const
-{
+bool SynthAudioProcessor::producesMidi() const {
    #if JucePlugin_ProducesMidiOutput
     return true;
    #else
@@ -234,49 +215,40 @@ bool SynthAudioProcessor::producesMidi() const
    #endif
 }
 
-bool SynthAudioProcessor::silenceInProducesSilenceOut() const
-{
+bool SynthAudioProcessor::silenceInProducesSilenceOut() const {
     return false;
 }
 
-double SynthAudioProcessor::getTailLengthSeconds() const
-{
+double SynthAudioProcessor::getTailLengthSeconds() const {
     return 0.0;
 }
 
-int SynthAudioProcessor::getNumPrograms()
-{
+int SynthAudioProcessor::getNumPrograms() {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int SynthAudioProcessor::getCurrentProgram()
-{
+int SynthAudioProcessor::getCurrentProgram() {
     return 0;
 }
 
-void SynthAudioProcessor::setCurrentProgram (int index)
-{
+void SynthAudioProcessor::setCurrentProgram (int index) {
 }
 
-const String SynthAudioProcessor::getProgramName (int index)
-{
+const String SynthAudioProcessor::getProgramName (int index) {
     return String();
 }
 
-void SynthAudioProcessor::changeProgramName (int index, const String& newName)
-{
+void SynthAudioProcessor::changeProgramName (int index, const String& newName) {
 }
 
 //==============================================================================
-void SynthAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
-{
+void SynthAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock) {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 }
 
-void SynthAudioProcessor::releaseResources()
-{
+void SynthAudioProcessor::releaseResources() {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
@@ -321,16 +293,9 @@ void SynthAudioProcessor::delay(AudioBuffer<FloatType>& buffer) {
 				ringBuffer.write(buffer.getSample(channel, i));
 				value = value * wetMix + buffer.getSample(channel, i) * dryMix;
 				buffer.setSample(channel, i, value);
-			}
-		} // for (channels)
+			} // for samples
+		} // for channels
 	}
-}
-
-inline float dB2gain(float dB){
-	return pow(10, dB / 20);
-}
-inline float gain2dB(float gain){
-	return 20 * log(gain);
 }
 
 void SynthAudioProcessor::log(std::string text) {
@@ -342,28 +307,24 @@ bool SynthAudioProcessor::hasEditor() const {
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-AudioProcessorEditor* SynthAudioProcessor::createEditor()
-{
+AudioProcessorEditor* SynthAudioProcessor::createEditor() {
     return new SynthAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void SynthAudioProcessor::getStateInformation (MemoryBlock& destData)
-{
+void SynthAudioProcessor::getStateInformation (MemoryBlock& destData) {
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
 }
 
-void SynthAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
-{
+void SynthAudioProcessor::setStateInformation (const void* data, int sizeInBytes) {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
 }
 
 //==============================================================================
 // This creates new instances of the plugin..
-AudioProcessor* JUCE_CALLTYPE createPluginFilter()
-{
+AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
     return new SynthAudioProcessor();
 }

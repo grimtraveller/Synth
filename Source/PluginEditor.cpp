@@ -366,11 +366,6 @@ void SynthAudioProcessorEditor::timerCallback()
 	}
 	// waveform:
 	waveformCombo->setSelectedItemIndex(ourProcessor->waveForm);
-	// envelope:
-	attackSlider->setValue(ourProcessor->attackMS);
-	decaySlider->setValue(ourProcessor->decayMS);
-	sustainSlider->setValue(ourProcessor->sustainLevel * 100);
-	releaseSlider->setValue(ourProcessor->releaseMS);
 	// delay:
 	delayLengthSlider->setValue(ourProcessor->delayLengthMS);
 	dryMixSlider->setValue(ourProcessor->dryMix * 100);

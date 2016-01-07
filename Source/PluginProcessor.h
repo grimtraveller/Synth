@@ -93,23 +93,12 @@ public:
 	// WaveForm:
 	int waveForm;
 
-	// Envelope:
-	int attackMS;
-	int decayMS;
-	float sustainLevel;
-	int releaseMS;
-	float gain;
-
 	// Delay:
 	int delayLengthMS;
 	float dryMix;
 	float wetMix;
 	float feedback;
 	RingBuffer ringBuffer;
-
-	// Noise:
-	bool isNoiseActive;
-	float noiseMix;
 
 private:
     //==============================================================================
