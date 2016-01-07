@@ -85,6 +85,9 @@ public:
 		totalNumParam
 	};
 
+	// Initialization:
+	void init();
+
 	// Console:
 	void log(std::string text);
 	bool consoleChanged;

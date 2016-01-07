@@ -12,18 +12,22 @@
 #include "PluginEditor.h"
 
 SynthAudioProcessor::SynthAudioProcessor() {
+	init();
+}
 
+SynthAudioProcessor::~SynthAudioProcessor() {
+}
+
+void SynthAudioProcessor::init() {
 	UserParams[MasterBypass] = 0.0f;//default to not bypassed
 	//repeat for "OtherParams":
 
+	// waveform:
 	numberOfVoices = 8;
-	
 	synth.addSound(new SynthSound());
 	for (int i = 0; i < numberOfVoices; i++) {
 		synth.addVoice(new SynthVoice());
 	}
-
-	// waveform:
 	waveForm = 0;
 
 	// console:
@@ -33,10 +37,6 @@ SynthAudioProcessor::SynthAudioProcessor() {
 	delayLengthMS = 0;
 	dryMix = 1.0;
 	wetMix = 0.5;
-
-}
-
-SynthAudioProcessor::~SynthAudioProcessor() {
 }
 
 //==============================================================================
